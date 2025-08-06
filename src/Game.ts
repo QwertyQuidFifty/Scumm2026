@@ -14,8 +14,8 @@ export class Game {
   private characterSprite?: Sprite;
 
   private readonly config: GameConfig = {
-    gameWidth: window.innerWidth,
-    gameHeight: window.innerHeight,
+    gameWidth: 1024,
+    gameHeight: 768,
     backgroundColor: 0x000022,
     targetFPS: 60,
   };
@@ -62,12 +62,8 @@ export class Game {
     canvas.style.imageRendering = "pixelated";
     canvas.style.imageRendering = "crisp-edges";
     canvas.style.display = "block";
-    canvas.style.width = "100vw";
-    canvas.style.height = "100vh";
-
-    window.addEventListener("resize", () => {
-      this.handleResize();
-    });
+    canvas.style.width = "1024px";
+    canvas.style.height = "768px";
   }
 
   private async loadAssets(): Promise<void> {
@@ -86,9 +82,9 @@ export class Game {
     if (backgroundTexture) {
       this.backgroundSprite = new Sprite(backgroundTexture);
 
-      // Scale background to fill entire canvas (fullscreen)
-      this.backgroundSprite.width = this.app.screen.width;
-      this.backgroundSprite.height = this.app.screen.height;
+      // Scale background to fill entire canvas (1024x768)
+      this.backgroundSprite.width = this.config.gameWidth;
+      this.backgroundSprite.height = this.config.gameHeight;
 
       // Position at top-left (0,0)
       this.backgroundSprite.x = 0;
@@ -118,17 +114,6 @@ export class Game {
 
     this.app.stage.addChild(this.characterSprite);
     console.log("Character sprite created and added to stage");
-  }
-
-  private handleResize(): void {
-    // Update app size to match window
-    this.app.renderer.resize(window.innerWidth, window.innerHeight);
-
-    // Update background size if it exists
-    if (this.backgroundSprite) {
-      this.backgroundSprite.width = window.innerWidth;
-      this.backgroundSprite.height = window.innerHeight;
-    }
   }
 
   private startGameLoop(): void {
