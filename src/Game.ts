@@ -1,14 +1,17 @@
-import { Application } from "pixi.js";
+import { Application, Sprite } from "pixi.js";
 import { GameConfig, GameState } from "./types";
+import { AssetManager } from "./AssetManager";
 
 export class Game {
   private app!: Application;
   private gameContainer!: HTMLElement;
   private scale: number = 1;
+  private assetManager: AssetManager;
+  private backgroundSprite?: Sprite;
 
   private readonly config: GameConfig = {
-    gameWidth: 320,
-    gameHeight: 200,
+    gameWidth: window.innerWidth,
+    gameHeight: window.innerHeight,
     backgroundColor: 0x000022,
     targetFPS: 60,
   };
@@ -19,9 +22,15 @@ export class Game {
     lastUpdateTime: 0,
   };
 
+  constructor() {
+    this.assetManager = new AssetManager();
+  }
+
   async initialize(): Promise<void> {
     await this.setupApplication();
     this.setupCanvas();
+    await this.loadAssets();
+    this.setupBackground();
     this.startGameLoop();
   }
 
@@ -47,32 +56,53 @@ export class Game {
     canvas.style.imageRendering = "pixelated";
     canvas.style.imageRendering = "crisp-edges";
     canvas.style.display = "block";
-
-    this.calculateScale();
-    this.updateCanvasScale();
+    canvas.style.width = "100vw";
+    canvas.style.height = "100vh";
 
     window.addEventListener("resize", () => {
-      this.calculateScale();
-      this.updateCanvasScale();
+      this.handleResize();
     });
   }
 
-  private calculateScale(): void {
-    const containerRect = this.gameContainer.getBoundingClientRect();
-    const scaleX = Math.floor(containerRect.width / this.config.gameWidth);
-    const scaleY = Math.floor(containerRect.height / this.config.gameHeight);
-
-    this.scale = Math.max(1, Math.min(scaleX, scaleY));
+  private async loadAssets(): Promise<void> {
+    try {
+      console.log("Loading assets...");
+      await this.assetManager.loadAllAssets();
+      console.log("Assets loaded successfully");
+    } catch (error) {
+      console.error("Failed to load assets:", error);
+      throw error;
+    }
   }
 
-  private updateCanvasScale(): void {
-    const canvas = this.app.canvas;
-    const scaledWidth = this.config.gameWidth * this.scale;
-    const scaledHeight = this.config.gameHeight * this.scale;
+  private setupBackground(): void {
+    const backgroundTexture = this.assetManager.getAsset("cyberpunk");
+    if (backgroundTexture) {
+      this.backgroundSprite = new Sprite(backgroundTexture);
 
-    canvas.style.width = `${scaledWidth}px`;
-    canvas.style.height = `${scaledHeight}px`;
-    canvas.style.margin = "auto";
+      // Scale background to fill entire canvas (fullscreen)
+      this.backgroundSprite.width = this.app.screen.width;
+      this.backgroundSprite.height = this.app.screen.height;
+
+      // Position at top-left (0,0)
+      this.backgroundSprite.x = 0;
+      this.backgroundSprite.y = 0;
+
+      this.app.stage.addChild(this.backgroundSprite);
+    } else {
+      console.warn("Background texture not found");
+    }
+  }
+
+  private handleResize(): void {
+    // Update app size to match window
+    this.app.renderer.resize(window.innerWidth, window.innerHeight);
+
+    // Update background size if it exists
+    if (this.backgroundSprite) {
+      this.backgroundSprite.width = window.innerWidth;
+      this.backgroundSprite.height = window.innerHeight;
+    }
   }
 
   private startGameLoop(): void {
@@ -114,5 +144,9 @@ export class Game {
 
   getGameState(): GameState {
     return { ...this.gameState };
+  }
+
+  getAssetManager(): AssetManager {
+    return this.assetManager;
   }
 }
