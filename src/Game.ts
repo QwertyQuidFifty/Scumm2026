@@ -1,7 +1,8 @@
 import { Application, Sprite } from "pixi.js";
-import { GameConfig, GameState } from "./types";
+import { GameConfig, GameState, Position } from "./types";
 import { AssetManager } from "./AssetManager";
 import { SpriteGenerator, CharacterSprites } from "./SpriteGenerator";
+import { InputManager } from "./InputManager";
 
 export class Game {
   private app!: Application;
@@ -12,6 +13,7 @@ export class Game {
   private spriteGenerator: SpriteGenerator;
   private characterSprites?: CharacterSprites;
   private characterSprite?: Sprite;
+  private inputManager?: InputManager;
 
   private readonly config: GameConfig = {
     gameWidth: 1024,
@@ -34,6 +36,7 @@ export class Game {
   async initialize(): Promise<void> {
     await this.setupApplication();
     this.setupCanvas();
+    this.setupInput();
     await this.loadAssets();
     this.setupBackground();
     this.setupCharacter();
@@ -64,6 +67,31 @@ export class Game {
     canvas.style.display = "block";
     canvas.style.width = "1024px";
     canvas.style.height = "768px";
+  }
+
+  private setupInput(): void {
+    this.inputManager = new InputManager(
+      this.app.canvas,
+      this.config.gameWidth,
+      this.config.gameHeight,
+    );
+
+    // Set up click handler
+    this.inputManager.setClickCallback((position: Position) => {
+      this.handleCanvasClick(position);
+    });
+
+    // Set up hover handler
+    this.inputManager.setHoverCallback(() => {
+      this.handleCanvasHover();
+    });
+
+    // Set up hover exit handler
+    this.inputManager.setHoverExitCallback(() => {
+      this.handleCanvasHoverExit();
+    });
+
+    console.log("Input system initialized");
   }
 
   private async loadAssets(): Promise<void> {
@@ -114,6 +142,31 @@ export class Game {
 
     this.app.stage.addChild(this.characterSprite);
     console.log("Character sprite created and added to stage");
+  }
+
+  private handleCanvasClick(position: Position): void {
+    console.log(
+      `Canvas clicked at game coordinates: (${position.x}, ${position.y})`,
+    );
+
+    // For now, just log the click - this will be expanded in future tasks
+    // to handle object interactions and character movement
+  }
+
+  private handleCanvasHover(): void {
+    // Update cursor based on what's under the mouse
+    // For now, just show pointer cursor to demonstrate it's working
+    // Position parameter will be used in future tasks for object detection
+    if (this.inputManager) {
+      this.inputManager.setCursor("crosshair");
+    }
+  }
+
+  private handleCanvasHoverExit(): void {
+    // Reset cursor when mouse leaves canvas
+    if (this.inputManager) {
+      this.inputManager.setCursor("default");
+    }
   }
 
   private startGameLoop(): void {
@@ -171,5 +224,9 @@ export class Game {
 
   getCharacterSprite(): Sprite | undefined {
     return this.characterSprite;
+  }
+
+  getInputManager(): InputManager | undefined {
+    return this.inputManager;
   }
 }
