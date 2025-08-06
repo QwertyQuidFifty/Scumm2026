@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(backlog task create:*)",
+      "Bash(backlog task list:*)",
+      "Bash(backlog task:*)",
+      "Bash(npm run lint:*)"
+    ],
+    "deny": []
+  }
+}
