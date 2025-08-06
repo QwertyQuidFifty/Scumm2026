@@ -1,6 +1,7 @@
 import { Application, Sprite } from "pixi.js";
 import { GameConfig, GameState } from "./types";
 import { AssetManager } from "./AssetManager";
+import { SpriteGenerator, CharacterSprites } from "./SpriteGenerator";
 
 export class Game {
   private app!: Application;
@@ -8,6 +9,9 @@ export class Game {
   private scale: number = 1;
   private assetManager: AssetManager;
   private backgroundSprite?: Sprite;
+  private spriteGenerator: SpriteGenerator;
+  private characterSprites?: CharacterSprites;
+  private characterSprite?: Sprite;
 
   private readonly config: GameConfig = {
     gameWidth: window.innerWidth,
@@ -24,6 +28,7 @@ export class Game {
 
   constructor() {
     this.assetManager = new AssetManager();
+    this.spriteGenerator = new SpriteGenerator();
   }
 
   async initialize(): Promise<void> {
@@ -31,6 +36,7 @@ export class Game {
     this.setupCanvas();
     await this.loadAssets();
     this.setupBackground();
+    this.setupCharacter();
     this.startGameLoop();
   }
 
@@ -94,6 +100,26 @@ export class Game {
     }
   }
 
+  private setupCharacter(): void {
+    // Generate character sprites using the renderer
+    this.characterSprites =
+      this.spriteGenerator.generateCharacterSpritesWithRenderer(
+        this.app.renderer,
+      );
+
+    // Create character sprite with idle animation initially
+    this.characterSprite = new Sprite(this.characterSprites.idle);
+
+    // Position character at starting position (100, 150) from feature spec
+    // Scale up the 16x24 sprite for visibility (scale by 3)
+    this.characterSprite.scale.set(3, 3);
+    this.characterSprite.x = 100;
+    this.characterSprite.y = 150;
+
+    this.app.stage.addChild(this.characterSprite);
+    console.log("Character sprite created and added to stage");
+  }
+
   private handleResize(): void {
     // Update app size to match window
     this.app.renderer.resize(window.innerWidth, window.innerHeight);
@@ -148,5 +174,17 @@ export class Game {
 
   getAssetManager(): AssetManager {
     return this.assetManager;
+  }
+
+  getSpriteGenerator(): SpriteGenerator {
+    return this.spriteGenerator;
+  }
+
+  getCharacterSprites(): CharacterSprites | undefined {
+    return this.characterSprites;
+  }
+
+  getCharacterSprite(): Sprite | undefined {
+    return this.characterSprite;
   }
 }
