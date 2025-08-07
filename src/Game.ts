@@ -160,6 +160,9 @@ export class Game {
     // Create character sprite with idle animation initially
     this.characterSprite = new Sprite(this.characterSprites.idle);
 
+    // Set anchor to bottom center (0.5, 1.0) so sprite aligns naturally to ground
+    this.characterSprite.anchor.set(0.5, 1.0);
+
     // Position character within the walkable area (street)
     // Scale up the 16x24 sprite for visibility (scale by 3)
     this.characterSprite.scale.set(3, 3);
