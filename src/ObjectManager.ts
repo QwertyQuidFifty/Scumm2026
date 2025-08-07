@@ -103,7 +103,7 @@ export class ObjectManager {
 
     this.addObject({
       id: "hotel-sign",
-      name: "Hotel Sign",
+      name: "hotel sign",
       position: { x: 20 * scaleX, y: 30 * scaleY },
       width: 60 * scaleX,
       height: 40 * scaleY,
@@ -118,7 +118,7 @@ export class ObjectManager {
 
     this.addObject({
       id: "bar-sign",
-      name: "Bar Sign",
+      name: "bar sign",
       position: { x: 240 * scaleX, y: 45 * scaleY },
       width: 40 * scaleX,
       height: 25 * scaleY,
@@ -133,7 +133,7 @@ export class ObjectManager {
 
     this.addObject({
       id: "building-entrance",
-      name: "Building Entrance",
+      name: "building entrance",
       position: { x: 80 * scaleX, y: 80 * scaleY },
       width: 30 * scaleX,
       height: 60 * scaleY,
@@ -148,7 +148,7 @@ export class ObjectManager {
 
     this.addObject({
       id: "cryptic-door",
-      name: "Cryptic Door",
+      name: "cryptic door",
       position: { x: 20 * scaleX, y: 30 * scaleY },
       width: 60 * scaleX,
       height: 40 * scaleY,
@@ -163,7 +163,7 @@ export class ObjectManager {
 
     this.addObject({
       id: "city-in-distance",
-      name: "City in Distance",
+      name: "city in distance",
       position: { x: 20 * scaleX, y: 30 * scaleY },
       width: 60 * scaleX,
       height: 40 * scaleY,
@@ -174,7 +174,7 @@ export class ObjectManager {
         { x: 552, y: 542 },
         { x: 419, y: 542 },
       ],
-    });    
+    });
     console.log(`Initialized ${this.objects.size} interactive objects`);
   }
 

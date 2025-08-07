@@ -5,6 +5,7 @@ import { SpriteGenerator, CharacterSprites } from "./SpriteGenerator";
 import { InputManager } from "./InputManager";
 import { ObjectManager } from "./ObjectManager";
 import { CharacterController } from "./CharacterController";
+import { ActionBar } from "./ActionBar";
 
 export class Game {
   private app!: Application;
@@ -18,6 +19,7 @@ export class Game {
   private inputManager?: InputManager;
   private objectManager: ObjectManager;
   private characterController?: CharacterController;
+  private actionBar?: ActionBar;
 
   // Walkable area polygon (street area)
   private readonly walkableArea: Position[] = [
@@ -56,6 +58,7 @@ export class Game {
     this.setupBackground();
     this.setupObjects();
     this.setupCharacter();
+    this.setupUI();
     this.startGameLoop();
   }
 
@@ -183,6 +186,17 @@ export class Game {
     console.log("Character sprite and controller created and added to stage");
   }
 
+  private setupUI(): void {
+    // Create action bar
+    this.actionBar = new ActionBar(this.config.gameWidth);
+    this.actionBar.setPosition(0, 0); // Position at top of screen
+
+    // Add action bar to stage (above everything else)
+    this.app.stage.addChild(this.actionBar.getContainer());
+
+    console.log("Action bar UI created and positioned");
+  }
+
   private handleCanvasClick(position: Position): void {
     console.log(
       `Canvas clicked at game coordinates: (${position.x}, ${position.y})`,
@@ -230,6 +244,15 @@ export class Game {
         this.inputManager.setCursor("crosshair");
       }
     }
+
+    // Update action bar text based on hovered object
+    if (this.actionBar) {
+      if (hoveredObject) {
+        this.actionBar.showObjectHover(hoveredObject.name);
+      } else {
+        this.actionBar.showDefaultText();
+      }
+    }
   }
 
   private handleCanvasHoverExit(): void {
@@ -239,6 +262,11 @@ export class Game {
     // Reset cursor when mouse leaves canvas
     if (this.inputManager) {
       this.inputManager.setCursor("default");
+    }
+
+    // Reset action bar to default text
+    if (this.actionBar) {
+      this.actionBar.showDefaultText();
     }
   }
 
@@ -313,5 +341,9 @@ export class Game {
 
   getCharacterController(): CharacterController | undefined {
     return this.characterController;
+  }
+
+  getActionBar(): ActionBar | undefined {
+    return this.actionBar;
   }
 }
