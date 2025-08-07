@@ -56,7 +56,33 @@ export class ActionBar {
 
   setAction(action: string): void {
     this.currentAction = action;
-    this.updateText(`${action} to`);
+
+    // Format action text with appropriate preposition
+    let actionText;
+    switch (action.toLowerCase()) {
+      case "walk":
+        actionText = "Walk to";
+        break;
+      case "look":
+        actionText = "Look at";
+        break;
+      case "talk":
+        actionText = "Talk to";
+        break;
+      case "use":
+        actionText = "Use";
+        break;
+      case "pick up":
+        actionText = "Pick up";
+        break;
+      case "open":
+        actionText = "Open";
+        break;
+      default:
+        actionText = `${action} to`;
+    }
+
+    this.updateText(actionText);
   }
 
   setActionWithObject(action: string, objectName: string): void {
@@ -65,11 +91,37 @@ export class ActionBar {
   }
 
   showObjectHover(objectName: string): void {
-    this.updateText(`${this.currentAction} to ${objectName.toLowerCase()}`);
+    // Format action text with appropriate preposition for the object
+    let actionText;
+    switch (this.currentAction.toLowerCase()) {
+      case "walk":
+        actionText = `Walk to ${objectName.toLowerCase()}`;
+        break;
+      case "look":
+        actionText = `Look at ${objectName.toLowerCase()}`;
+        break;
+      case "talk":
+        actionText = `Talk to ${objectName.toLowerCase()}`;
+        break;
+      case "use":
+        actionText = `Use ${objectName.toLowerCase()}`;
+        break;
+      case "pick up":
+        actionText = `Pick up ${objectName.toLowerCase()}`;
+        break;
+      case "open":
+        actionText = `Open ${objectName.toLowerCase()}`;
+        break;
+      default:
+        actionText = `${this.currentAction} ${objectName.toLowerCase()}`;
+    }
+
+    this.updateText(actionText);
   }
 
   showDefaultText(): void {
-    this.updateText(this.defaultText);
+    // Show the current action instead of always defaulting to "Walk to"
+    this.setAction(this.currentAction);
   }
 
   setPosition(x: number, y: number): void {

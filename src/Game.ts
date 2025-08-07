@@ -6,6 +6,8 @@ import { InputManager } from "./InputManager";
 import { ObjectManager } from "./ObjectManager";
 import { CharacterController } from "./CharacterController";
 import { ActionBar } from "./ActionBar";
+import { CommandPanel, ActionType } from "./CommandPanel";
+import { InteractiveObject } from "./InteractiveObject";
 
 export class Game {
   private app!: Application;
@@ -20,6 +22,11 @@ export class Game {
   private objectManager: ObjectManager;
   private characterController?: CharacterController;
   private actionBar?: ActionBar;
+  private commandPanel?: CommandPanel;
+
+  // Pending action system
+  private pendingAction?: { action: ActionType; object: InteractiveObject };
+  private wasCharacterMoving: boolean = false;
 
   // Walkable area polygon (street area)
   private readonly walkableArea: Position[] = [
@@ -194,7 +201,23 @@ export class Game {
     // Add action bar to stage (above everything else)
     this.app.stage.addChild(this.actionBar.getContainer());
 
-    console.log("Action bar UI created and positioned");
+    // Create command panel
+    this.commandPanel = new CommandPanel();
+
+    // Position command panel at bottom left of screen
+    const commandPanelY =
+      this.config.gameHeight - this.commandPanel.getHeight() - 10;
+    this.commandPanel.setPosition(10, commandPanelY);
+
+    // Add command panel to stage
+    this.app.stage.addChild(this.commandPanel.getContainer());
+
+    // Set up command panel event handler
+    this.commandPanel.setOnActionChange((action: ActionType) => {
+      this.handleActionChange(action);
+    });
+
+    console.log("Action bar and command panel UI created and positioned");
   }
 
   private handleCanvasClick(position: Position): void {
@@ -209,19 +232,29 @@ export class Game {
     );
 
     if (clickedObject && this.characterController) {
-      console.log(`Clicked on object: ${clickedObject.name}`);
+      const currentAction = this.gameState.currentAction;
+      console.log(
+        `Clicked on object: ${clickedObject.name} with action: ${currentAction}`,
+      );
 
-      // Move character to interaction point near the object
+      // Move character to interaction point near the object for all actions
       const success = this.characterController.moveToObject(clickedObject);
 
       if (success) {
-        console.log(`Moving to interact with: ${clickedObject.name}`);
-        // TODO: Add interaction logic after movement completes
+        console.log(`Moving to ${currentAction} with: ${clickedObject.name}`);
+
+        // Store the pending action to execute when movement completes
+        if (currentAction !== "walk") {
+          this.setPendingAction(currentAction, clickedObject);
+        }
       } else {
         console.log(`Cannot reach object: ${clickedObject.name}`);
       }
-    } else if (this.characterController) {
-      // Try to move character to clicked position
+    } else if (
+      this.characterController &&
+      this.gameState.currentAction === "walk"
+    ) {
+      // Only move character if current action is walk
       const success = this.characterController.moveTo(position.x, position.y);
 
       if (success) {
@@ -270,6 +303,71 @@ export class Game {
     }
   }
 
+  private handleActionChange(action: ActionType): void {
+    // Update game state
+    this.gameState.currentAction = action;
+
+    // Update action bar to reflect new action
+    if (this.actionBar) {
+      this.actionBar.setAction(action);
+    }
+
+    console.log(`Current action changed to: ${action}`);
+  }
+
+  private revertToWalkAction(): void {
+    // Revert to walk action after executing another action
+    if (this.commandPanel) {
+      this.commandPanel.setSelectedAction("walk");
+    }
+
+    this.handleActionChange("walk");
+    console.log("Reverted to walk action");
+  }
+
+  private setPendingAction(
+    action: ActionType,
+    object: InteractiveObject,
+  ): void {
+    this.pendingAction = { action, object };
+    console.log(`Set pending action: ${action} on ${object.name}`);
+  }
+
+  private executePendingAction(): void {
+    if (!this.pendingAction) return;
+
+    const { action, object } = this.pendingAction;
+    console.log(`Executing pending action: ${action} on ${object.name}`);
+
+    // TODO: Implement specific action logic here
+    // For now, just log what would happen
+    switch (action) {
+      case "look":
+        console.log(`Looking at ${object.name}: ${object.description}`);
+        break;
+      case "use":
+        console.log(`Using ${object.name}`);
+        break;
+      case "pick up":
+        console.log(`Trying to pick up ${object.name}`);
+        break;
+      case "talk":
+        console.log(`Talking to ${object.name}`);
+        break;
+      case "open":
+        console.log(`Trying to open ${object.name}`);
+        break;
+      default:
+        console.log(`Unknown action: ${action}`);
+    }
+
+    // Clear the pending action
+    this.pendingAction = undefined;
+
+    // Revert to walk action after executing the action
+    this.revertToWalkAction();
+  }
+
   private startGameLoop(): void {
     this.gameState.isRunning = true;
     this.gameState.lastUpdateTime = performance.now();
@@ -292,10 +390,21 @@ export class Game {
   private update(): void {
     const currentTime = performance.now();
 
+    // Check current movement state
+    const isCurrentlyMoving = this.characterController?.isMoving() || false;
+
     // Update character movement and animation
     if (this.characterController) {
       this.characterController.update(currentTime);
     }
+
+    // Check if movement just completed and we have a pending action
+    if (this.wasCharacterMoving && !isCurrentlyMoving && this.pendingAction) {
+      this.executePendingAction();
+    }
+
+    // Update movement tracking for next frame
+    this.wasCharacterMoving = isCurrentlyMoving;
   }
 
   private render(): void {
@@ -345,5 +454,9 @@ export class Game {
 
   getActionBar(): ActionBar | undefined {
     return this.actionBar;
+  }
+
+  getCommandPanel(): CommandPanel | undefined {
+    return this.commandPanel;
   }
 }
