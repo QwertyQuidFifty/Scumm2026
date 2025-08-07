@@ -31,6 +31,8 @@ export class CharacterController {
     ["hotel-sign", { x: 202, y: 617 }], // Near hotel sign, on street
     ["bar-sign", { x: 689, y: 616 }], // Near bar sign, on street
     ["building-entrance", { x: 108, y: 646 }], // Near building entrance, on street
+    ["cryptic-door", { x: 896, y: 673 }], // Right side of the street below bar entrance
+    ["city-in-distance", { x: 470, y: 576 }], // City in distance, on street
   ]);
 
   constructor(sprite: Sprite, sprites: CharacterSprites) {

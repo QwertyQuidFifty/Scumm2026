@@ -146,6 +146,35 @@ export class ObjectManager {
       ],
     });
 
+    this.addObject({
+      id: "cryptic-door",
+      name: "Cryptic Door",
+      position: { x: 20 * scaleX, y: 30 * scaleY },
+      width: 60 * scaleX,
+      height: 40 * scaleY,
+      description: "An ornate door without a handle",
+      polygon: [
+        { x: 870, y: 391 },
+        { x: 947, y: 375 },
+        { x: 947, y: 630 },
+        { x: 870, y: 615 },
+      ],
+    });
+
+    this.addObject({
+      id: "city-in-distance",
+      name: "City in Distance",
+      position: { x: 20 * scaleX, y: 30 * scaleY },
+      width: 60 * scaleX,
+      height: 40 * scaleY,
+      description: "The street leads into the depth of the city",
+      polygon: [
+        { x: 419, y: 424 },
+        { x: 552, y: 424 },
+        { x: 552, y: 542 },
+        { x: 419, y: 542 },
+      ],
+    });    
     console.log(`Initialized ${this.objects.size} interactive objects`);
   }
 
