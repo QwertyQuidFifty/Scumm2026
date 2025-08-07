@@ -109,11 +109,11 @@ export class ObjectManager {
       height: 40 * scaleY,
       description: "A glowing neon hotel sign",
       polygon: [
-        { x: 164, y: 17},
+        { x: 164, y: 17 },
         { x: 222, y: 29 },
-        { x: 226, y: 364},
-        { x: 166, y: 354},
-      ]
+        { x: 226, y: 364 },
+        { x: 166, y: 354 },
+      ],
     });
 
     this.addObject({
@@ -128,23 +128,6 @@ export class ObjectManager {
         { x: 755, y: 316 },
         { x: 750, y: 414 },
         { x: 658, y: 443 },
-      ]
-    });
-
-    this.addObject({
-      id: "street",
-      name: "Street",
-      position: { x: 0, y: 570 }, // Fallback position
-      width: 1024, // Fallback dimensions
-      height: 139, // Approximate height from polygon
-      description: "The main street",
-      polygon: [
-        { x: 0, y: 763 },
-        { x: 3, y: 652 },
-        { x: 387, y: 570 },
-        { x: 568, y: 570 },
-        { x: 976, y: 667 },
-        { x: 1024, y: 763 },
       ],
     });
 

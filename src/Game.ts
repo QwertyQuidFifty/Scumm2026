@@ -4,6 +4,7 @@ import { AssetManager } from "./AssetManager";
 import { SpriteGenerator, CharacterSprites } from "./SpriteGenerator";
 import { InputManager } from "./InputManager";
 import { ObjectManager } from "./ObjectManager";
+import { CharacterController } from "./CharacterController";
 
 export class Game {
   private app!: Application;
@@ -16,6 +17,17 @@ export class Game {
   private characterSprite?: Sprite;
   private inputManager?: InputManager;
   private objectManager: ObjectManager;
+  private characterController?: CharacterController;
+
+  // Walkable area polygon (street area)
+  private readonly walkableArea: Position[] = [
+    { x: 0, y: 763 },
+    { x: 3, y: 652 },
+    { x: 387, y: 570 },
+    { x: 568, y: 570 },
+    { x: 976, y: 667 },
+    { x: 1024, y: 763 },
+  ];
 
   private readonly config: GameConfig = {
     gameWidth: 1024,
@@ -148,14 +160,24 @@ export class Game {
     // Create character sprite with idle animation initially
     this.characterSprite = new Sprite(this.characterSprites.idle);
 
-    // Position character at starting position (100, 150) from feature spec
+    // Position character within the walkable area (street)
     // Scale up the 16x24 sprite for visibility (scale by 3)
     this.characterSprite.scale.set(3, 3);
-    this.characterSprite.x = 100;
-    this.characterSprite.y = 150;
+    this.characterSprite.x = 400; // Center of street area
+    this.characterSprite.y = 650; // Within street polygon
 
     this.app.stage.addChild(this.characterSprite);
-    console.log("Character sprite created and added to stage");
+
+    // Initialize character controller
+    this.characterController = new CharacterController(
+      this.characterSprite,
+      this.characterSprites,
+    );
+
+    // Set up walkable area using the dedicated walkable area polygon
+    this.characterController.setWalkableArea(this.walkableArea);
+
+    console.log("Character sprite and controller created and added to stage");
   }
 
   private handleCanvasClick(position: Position): void {
@@ -169,14 +191,28 @@ export class Game {
       position.y,
     );
 
-    if (clickedObject) {
+    if (clickedObject && this.characterController) {
       console.log(`Clicked on object: ${clickedObject.name}`);
-      console.log(`Object description: ${clickedObject.description}`);
-    } else {
-      console.log("Clicked on empty space");
-    }
 
-    // Future tasks will expand this to handle character movement and actions
+      // Move character to interaction point near the object
+      const success = this.characterController.moveToObject(clickedObject);
+
+      if (success) {
+        console.log(`Moving to interact with: ${clickedObject.name}`);
+        // TODO: Add interaction logic after movement completes
+      } else {
+        console.log(`Cannot reach object: ${clickedObject.name}`);
+      }
+    } else if (this.characterController) {
+      // Try to move character to clicked position
+      const success = this.characterController.moveTo(position.x, position.y);
+
+      if (success) {
+        console.log("Moving character to clicked position");
+      } else {
+        console.log("Cannot move to that position - outside walkable area");
+      }
+    }
   }
 
   private handleCanvasHover(position: Position): void {
@@ -223,8 +259,12 @@ export class Game {
   }
 
   private update(): void {
-    // Game update logic will be added in future tasks
-    // deltaTime parameter will be added when movement system is implemented
+    const currentTime = performance.now();
+
+    // Update character movement and animation
+    if (this.characterController) {
+      this.characterController.update(currentTime);
+    }
   }
 
   private render(): void {
@@ -266,5 +306,9 @@ export class Game {
 
   getObjectManager(): ObjectManager {
     return this.objectManager;
+  }
+
+  getCharacterController(): CharacterController | undefined {
+    return this.characterController;
   }
 }
