@@ -72,8 +72,8 @@ export class ActionBar {
       case "use":
         actionText = "Use";
         break;
-      case "pick up":
-        actionText = "Pick up";
+      case "get":
+        actionText = "Get";
         break;
       case "open":
         actionText = "Open";
@@ -106,8 +106,8 @@ export class ActionBar {
       case "use":
         actionText = `Use ${objectName.toLowerCase()}`;
         break;
-      case "pick up":
-        actionText = `Pick up ${objectName.toLowerCase()}`;
+      case "get":
+        actionText = `Get ${objectName.toLowerCase()}`;
         break;
       case "open":
         actionText = `Open ${objectName.toLowerCase()}`;

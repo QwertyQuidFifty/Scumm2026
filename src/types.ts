@@ -19,7 +19,7 @@ export interface GameObject {
 }
 
 export interface GameState {
-  currentAction: "walk" | "use" | "pick up" | "talk" | "look" | "open";
+  currentAction: "walk" | "use" | "get" | "talk" | "look" | "open";
   isRunning: boolean;
   lastUpdateTime: number;
 }

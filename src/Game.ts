@@ -8,6 +8,7 @@ import { CharacterController } from "./CharacterController";
 import { ActionBar } from "./ActionBar";
 import { CommandPanel, ActionType } from "./CommandPanel";
 import { InteractiveObject } from "./InteractiveObject";
+import { InventorySystem, InventoryItem } from "./InventorySystem";
 
 export class Game {
   private app!: Application;
@@ -23,6 +24,11 @@ export class Game {
   private characterController?: CharacterController;
   private actionBar?: ActionBar;
   private commandPanel?: CommandPanel;
+  private inventorySystem?: InventorySystem;
+
+  // UI layout configuration
+  private gameAreaWidth: number = 1024; // Original game area (unchanged)
+  private uiAreaWidth: number = 196; // Wider UI column for larger elements
 
   // Pending action system
   private pendingAction?: { action: ActionType; object: InteractiveObject };
@@ -39,7 +45,7 @@ export class Game {
   ];
 
   private readonly config: GameConfig = {
-    gameWidth: 1024,
+    gameWidth: 1220, // Original 1024 + 196px for larger UI column
     gameHeight: 768,
     backgroundColor: 0x000022,
     targetFPS: 60,
@@ -66,6 +72,7 @@ export class Game {
     this.setupObjects();
     this.setupCharacter();
     this.setupUI();
+    this.addTestInventoryItems(); // Add test items after UI is set up
     this.startGameLoop();
   }
 
@@ -91,7 +98,7 @@ export class Game {
     canvas.style.imageRendering = "pixelated";
     canvas.style.imageRendering = "crisp-edges";
     canvas.style.display = "block";
-    canvas.style.width = "1024px";
+    canvas.style.width = "1220px"; // Updated to match new canvas width
     canvas.style.height = "768px";
   }
 
@@ -136,8 +143,8 @@ export class Game {
     if (backgroundTexture) {
       this.backgroundSprite = new Sprite(backgroundTexture);
 
-      // Scale background to fill entire canvas (1024x768)
-      this.backgroundSprite.width = this.config.gameWidth;
+      // Scale background to fill original game area (1024x768) - unchanged
+      this.backgroundSprite.width = this.gameAreaWidth;
       this.backgroundSprite.height = this.config.gameHeight;
 
       // Position at top-left (0,0)
@@ -194,30 +201,50 @@ export class Game {
   }
 
   private setupUI(): void {
-    // Create action bar
+    // Create action bar (spans full width at top)
     this.actionBar = new ActionBar(this.config.gameWidth);
-    this.actionBar.setPosition(0, 0); // Position at top of screen
-
-    // Add action bar to stage (above everything else)
+    this.actionBar.setPosition(0, 0);
     this.app.stage.addChild(this.actionBar.getContainer());
 
-    // Create command panel
+    // Calculate right-side UI positioning (in the black space to the right)
+    const rightColumnX = this.gameAreaWidth + 10; // Original game area + padding
+    const sectionSpacing = 25; // Larger spacing between action buttons and inventory
+
+    // Create command panel (positioned in right column, 2x3 grid)
     this.commandPanel = new CommandPanel();
-
-    // Position command panel at bottom left of screen
-    const commandPanelY =
-      this.config.gameHeight - this.commandPanel.getHeight() - 10;
-    this.commandPanel.setPosition(10, commandPanelY);
-
-    // Add command panel to stage
+    this.commandPanel.setPosition(rightColumnX, 50); // Below action bar
     this.app.stage.addChild(this.commandPanel.getContainer());
 
-    // Set up command panel event handler
+    // Create inventory system (positioned below command panel with extra separation, 2x5 grid)
+    this.inventorySystem = new InventorySystem();
+    const inventoryY = 50 + this.commandPanel.getHeight() + sectionSpacing;
+    this.inventorySystem.setPosition(rightColumnX, inventoryY);
+    this.app.stage.addChild(this.inventorySystem.getContainer());
+
+    // Set up event handlers
     this.commandPanel.setOnActionChange((action: ActionType) => {
       this.handleActionChange(action);
     });
 
-    console.log("Action bar and command panel UI created and positioned");
+    this.inventorySystem.setOnSlotClick(
+      (slotIndex: number, item?: InventoryItem) => {
+        this.handleInventoryClick(slotIndex, item);
+      },
+    );
+
+    this.inventorySystem.setOnSlotHover(
+      (slotIndex: number, item?: InventoryItem) => {
+        this.handleInventoryHover(slotIndex, item);
+      },
+    );
+
+    this.inventorySystem.setOnSlotHoverExit(() => {
+      this.handleInventoryHoverExit();
+    });
+
+    console.log(
+      "UI components positioned in right column with larger buttons/slots and better separation",
+    );
   }
 
   private handleCanvasClick(position: Position): void {
@@ -348,8 +375,8 @@ export class Game {
       case "use":
         console.log(`Using ${object.name}`);
         break;
-      case "pick up":
-        console.log(`Trying to pick up ${object.name}`);
+      case "get":
+        console.log(`Trying to get ${object.name}`);
         break;
       case "talk":
         console.log(`Talking to ${object.name}`);
@@ -366,6 +393,29 @@ export class Game {
 
     // Revert to walk action after executing the action
     this.revertToWalkAction();
+  }
+
+  private handleInventoryClick(slotIndex: number, item?: InventoryItem): void {
+    if (item) {
+      console.log(`Clicked inventory item: ${item.name} in slot ${slotIndex}`);
+      // TODO: Handle item selection/usage
+    } else {
+      console.log(`Clicked empty inventory slot ${slotIndex}`);
+    }
+  }
+
+  private handleInventoryHover(slotIndex: number, item?: InventoryItem): void {
+    if (item && this.actionBar) {
+      // Update action bar to show item name when hovering
+      this.actionBar.updateText(item.name);
+    }
+  }
+
+  private handleInventoryHoverExit(): void {
+    if (this.actionBar) {
+      // Return action bar to showing current action when not hovering inventory
+      this.actionBar.showDefaultText();
+    }
   }
 
   private startGameLoop(): void {
@@ -458,5 +508,45 @@ export class Game {
 
   getCommandPanel(): CommandPanel | undefined {
     return this.commandPanel;
+  }
+
+  getInventorySystem(): InventorySystem | undefined {
+    return this.inventorySystem;
+  }
+
+  // Test method to add some sample inventory items
+  addTestInventoryItems(): void {
+    if (!this.inventorySystem) return;
+
+    // Add test items as specified in the documentation
+    const testItems: InventoryItem[] = [
+      {
+        id: "keycard",
+        name: "Key Card",
+        description: "A plastic access card with a magnetic strip.",
+        color: 0x4a90e2, // blue
+        icon: "KEY",
+      },
+      {
+        id: "credits",
+        name: "Credits",
+        description: "Digital currency chips worth 100 credits.",
+        color: 0xf5a623, // orange
+        icon: "¢100",
+      },
+      {
+        id: "datapad",
+        name: "Data Pad",
+        description: "A small handheld device containing encrypted files.",
+        color: 0x7ed321, // green
+        icon: "PAD",
+      },
+    ];
+
+    for (const item of testItems) {
+      this.inventorySystem.addItem(item);
+    }
+
+    console.log("Added test inventory items");
   }
 }

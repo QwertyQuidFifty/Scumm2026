@@ -6,7 +6,7 @@ import {
   FederatedPointerEvent,
 } from "pixi.js";
 
-export type ActionType = "walk" | "use" | "pick up" | "talk" | "look" | "open";
+export type ActionType = "walk" | "use" | "get" | "talk" | "look" | "open";
 
 interface ButtonState {
   normal: {
@@ -39,9 +39,10 @@ export class CommandPanel {
   private container: Container;
   private buttons: Map<ActionType, CommandButton> = new Map();
   private selectedAction: ActionType = "walk";
-  private buttonWidth: number = 120;
-  private buttonHeight: number = 50;
-  private buttonSpacing: number = 10;
+  private buttonWidth: number = 90; // 50% larger than 60
+  private buttonHeight: number = 60; // 50% larger than 40
+  private buttonSpacing: number = 8;
+  private buttonsPerRow: number = 2;
   private textStyle: TextStyle;
   private onActionChange?: (action: ActionType) => void;
 
@@ -66,7 +67,7 @@ export class CommandPanel {
   private actions: ActionType[] = [
     "walk",
     "use",
-    "pick up",
+    "get",
     "talk",
     "look",
     "open",
@@ -82,7 +83,7 @@ export class CommandPanel {
   private setupTextStyle(): void {
     this.textStyle = new TextStyle({
       fontFamily: "Courier New",
-      fontSize: 32,
+      fontSize: 22, // Even larger font size for better readability
       fill: 0xffffff, // white
       align: "center",
     });
@@ -101,13 +102,15 @@ export class CommandPanel {
     const container = new Container();
     const background = new Graphics();
     const text = new Text({
-      text: action.toUpperCase(),
+      text: action.charAt(0).toUpperCase() + action.slice(1).toLowerCase(),
       style: this.textStyle,
     });
 
-    // Position button
-    container.x = index * (this.buttonWidth + this.buttonSpacing);
-    container.y = 0;
+    // Position button in 2x3 grid layout
+    const row = Math.floor(index / this.buttonsPerRow);
+    const col = index % this.buttonsPerRow;
+    container.x = col * (this.buttonWidth + this.buttonSpacing);
+    container.y = row * (this.buttonHeight + this.buttonSpacing);
 
     // Center text in button
     text.anchor.set(0.5, 0.5);
@@ -266,13 +269,14 @@ export class CommandPanel {
 
   getTotalWidth(): number {
     return (
-      this.actions.length * this.buttonWidth +
-      (this.actions.length - 1) * this.buttonSpacing
+      this.buttonsPerRow * this.buttonWidth +
+      (this.buttonsPerRow - 1) * this.buttonSpacing
     );
   }
 
   getHeight(): number {
-    return this.buttonHeight;
+    const rows = Math.ceil(this.actions.length / this.buttonsPerRow);
+    return rows * this.buttonHeight + (rows - 1) * this.buttonSpacing;
   }
 
   destroy(): void {
