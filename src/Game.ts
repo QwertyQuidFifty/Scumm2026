@@ -3,6 +3,7 @@ import { GameConfig, GameState, Position } from "./types";
 import { AssetManager } from "./AssetManager";
 import { SpriteGenerator, CharacterSprites } from "./SpriteGenerator";
 import { InputManager } from "./InputManager";
+import { ObjectManager } from "./ObjectManager";
 
 export class Game {
   private app!: Application;
@@ -14,6 +15,7 @@ export class Game {
   private characterSprites?: CharacterSprites;
   private characterSprite?: Sprite;
   private inputManager?: InputManager;
+  private objectManager: ObjectManager;
 
   private readonly config: GameConfig = {
     gameWidth: 1024,
@@ -31,6 +33,7 @@ export class Game {
   constructor() {
     this.assetManager = new AssetManager();
     this.spriteGenerator = new SpriteGenerator();
+    this.objectManager = new ObjectManager();
   }
 
   async initialize(): Promise<void> {
@@ -39,6 +42,7 @@ export class Game {
     this.setupInput();
     await this.loadAssets();
     this.setupBackground();
+    this.setupObjects();
     this.setupCharacter();
     this.startGameLoop();
   }
@@ -82,8 +86,8 @@ export class Game {
     });
 
     // Set up hover handler
-    this.inputManager.setHoverCallback(() => {
-      this.handleCanvasHover();
+    this.inputManager.setHoverCallback((position: Position) => {
+      this.handleCanvasHover(position);
     });
 
     // Set up hover exit handler
@@ -124,6 +128,16 @@ export class Game {
     }
   }
 
+  private setupObjects(): void {
+    // Initialize interactive objects
+    this.objectManager.initializeGameObjects();
+
+    // Add highlight container to stage (above background, below character)
+    this.app.stage.addChild(this.objectManager.getHighlightContainer());
+
+    console.log("Interactive objects initialized");
+  }
+
   private setupCharacter(): void {
     // Generate character sprites using the renderer
     this.characterSprites =
@@ -149,20 +163,40 @@ export class Game {
       `Canvas clicked at game coordinates: (${position.x}, ${position.y})`,
     );
 
-    // For now, just log the click - this will be expanded in future tasks
-    // to handle object interactions and character movement
+    // Check if click hit an interactive object
+    const clickedObject = this.objectManager.getObjectAtPosition(
+      position.x,
+      position.y,
+    );
+
+    if (clickedObject) {
+      console.log(`Clicked on object: ${clickedObject.name}`);
+      console.log(`Object description: ${clickedObject.description}`);
+    } else {
+      console.log("Clicked on empty space");
+    }
+
+    // Future tasks will expand this to handle character movement and actions
   }
 
-  private handleCanvasHover(): void {
+  private handleCanvasHover(position: Position): void {
+    // Update object hover states and highlighting
+    const hoveredObject = this.objectManager.updateHover(position);
+
     // Update cursor based on what's under the mouse
-    // For now, just show pointer cursor to demonstrate it's working
-    // Position parameter will be used in future tasks for object detection
     if (this.inputManager) {
-      this.inputManager.setCursor("crosshair");
+      if (hoveredObject) {
+        this.inputManager.setCursor("pointer");
+      } else {
+        this.inputManager.setCursor("crosshair");
+      }
     }
   }
 
   private handleCanvasHoverExit(): void {
+    // Clear object hover states
+    this.objectManager.clearHover();
+
     // Reset cursor when mouse leaves canvas
     if (this.inputManager) {
       this.inputManager.setCursor("default");
@@ -228,5 +262,9 @@ export class Game {
 
   getInputManager(): InputManager | undefined {
     return this.inputManager;
+  }
+
+  getObjectManager(): ObjectManager {
+    return this.objectManager;
   }
 }
