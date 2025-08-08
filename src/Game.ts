@@ -45,7 +45,7 @@ export class Game {
   ];
 
   private readonly config: GameConfig = {
-    gameWidth: 1220, // Original 1024 + 196px for larger UI column
+    gameWidth: 1230, // Original 1024 + 196px UI column + 10px right padding
     gameHeight: 768,
     backgroundColor: 0x000022,
     targetFPS: 60,
@@ -98,7 +98,7 @@ export class Game {
     canvas.style.imageRendering = "pixelated";
     canvas.style.imageRendering = "crisp-edges";
     canvas.style.display = "block";
-    canvas.style.width = "1220px"; // Updated to match new canvas width
+    canvas.style.width = "1230px"; // Updated to match new canvas width with right padding
     canvas.style.height = "768px";
   }
 
@@ -300,6 +300,12 @@ export class Game {
         // Flash action bar pink when walking to empty area
         if (this.actionBar) {
           this.actionBar.flashPink();
+          // For walk actions, revert color immediately since movement is the action
+          setTimeout(() => {
+            if (this.actionBar) {
+              this.actionBar.revertColor();
+            }
+          }, 150);
         }
       } else {
         console.log("Cannot move to that position - outside walkable area");
@@ -405,6 +411,11 @@ export class Game {
 
     // Clear the pending action
     this.pendingAction = undefined;
+
+    // Revert action bar color when action is complete
+    if (this.actionBar) {
+      this.actionBar.revertColor();
+    }
 
     // Revert to walk action after executing the action
     this.revertToWalkAction();

@@ -150,13 +150,13 @@ export class ActionBar {
   }
 
   flashPink(): void {
-    // Flash pink once when object is clicked
+    // Stay pink until action is complete
     this.text.style.fill = this.flashColor;
+  }
 
-    // Revert to normal color after 150ms
-    setTimeout(() => {
-      this.text.style.fill = this.normalColor;
-    }, 150);
+  revertColor(): void {
+    // Revert to normal color when action is complete
+    this.text.style.fill = this.normalColor;
   }
 
   destroy(): void {
