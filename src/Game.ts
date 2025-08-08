@@ -133,6 +133,11 @@ export class Game {
       this.handleCanvasRightClick(position);
     });
 
+    // Set up keyboard handler
+    this.inputManager.setKeyPressCallback((key: string) => {
+      this.handleKeyPress(key);
+    });
+
     // Set up hover handler
     this.inputManager.setHoverCallback((position: Position) => {
       this.handleCanvasHover(position);
@@ -403,6 +408,29 @@ export class Game {
           }
         }
       }
+    }
+  }
+
+  private handleKeyPress(key: string): void {
+    console.log(`Key pressed: ${key}`);
+
+    // Map keyboard shortcuts to actions
+    const keyToActionMap: { [key: string]: ActionType } = {
+      w: "walk",
+      t: "talk",
+      u: "use",
+      g: "get",
+      l: "look",
+      o: "open",
+    };
+
+    const action = keyToActionMap[key];
+    if (action && this.commandPanel) {
+      // Update the command panel selection and trigger action change
+      this.commandPanel.setSelectedAction(action);
+      this.handleActionChange(action);
+
+      console.log(`Keyboard shortcut: ${key.toUpperCase()} -> ${action}`);
     }
   }
 

@@ -16,6 +16,7 @@ export class InputManager {
   private onRightClickCallback?: (position: Position) => void;
   private onHoverCallback?: (position: Position) => void;
   private onHoverExitCallback?: () => void;
+  private onKeyPressCallback?: (key: string) => void;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -101,6 +102,35 @@ export class InputManager {
     this.canvas.addEventListener("contextmenu", (event) => {
       event.preventDefault();
     });
+
+    // Keyboard events (listen on document for global keyboard shortcuts)
+    document.addEventListener("keydown", (event) => {
+      // Only handle key presses when the canvas is focused or when no input field is focused
+      if (
+        document.activeElement === this.canvas ||
+        !this.isInputFieldFocused()
+      ) {
+        if (this.onKeyPressCallback) {
+          this.onKeyPressCallback(event.key.toLowerCase());
+        }
+      }
+    });
+
+    // Make canvas focusable for keyboard events
+    this.canvas.setAttribute("tabindex", "0");
+  }
+
+  private isInputFieldFocused(): boolean {
+    const activeElement = document.activeElement;
+    if (!activeElement) return false;
+
+    const tagName = activeElement.tagName.toLowerCase();
+    return (
+      tagName === "input" ||
+      tagName === "textarea" ||
+      tagName === "select" ||
+      activeElement.contentEditable === "true"
+    );
   }
 
   private screenToGameCoordinates(screenX: number, screenY: number): Position {
@@ -151,6 +181,10 @@ export class InputManager {
 
   setRightClickCallback(callback: (position: Position) => void): void {
     this.onRightClickCallback = callback;
+  }
+
+  setKeyPressCallback(callback: (key: string) => void): void {
+    this.onKeyPressCallback = callback;
   }
 
   setHoverExitCallback(callback: () => void): void {

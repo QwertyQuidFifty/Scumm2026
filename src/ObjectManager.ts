@@ -180,6 +180,21 @@ export class ObjectManager {
         { x: 419, y: 542 },
       ],
     });
+    this.addObject({
+      id: "bar-door",
+      name: "bar",
+      position: { x: 20 * scaleX, y: 30 * scaleY },
+      width: 60 * scaleX,
+      height: 40 * scaleY,
+      description: "The dimly lit entrance to the bar",
+      defaultAction: "walk", // Paths/streets should be walked to
+      polygon: [
+        { x: 720, y: 494 },
+        { x: 746, y: 496 },
+        { x: 746, y: 597 },
+        { x: 720, y: 593 },
+      ],
+    });
 
     // Add interactive key object that can be picked up
     this.addObject({

@@ -91,6 +91,45 @@ export class ActionResponseSystem {
       ]),
     );
 
+        // Bar entrance responses
+    this.responses.set(
+      "bar-door",
+      new Map([
+        [
+          "look",
+          {
+            text: "It's a dark bar entrance with a neon sign above.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "use",
+          { text: "I can't use the bar door.", shouldMoveCharacter: false },
+        ],
+        [
+          "get",
+          {
+            text: "I can't pick that up.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "talk",
+          {
+            text: "No one to talk to here",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "open",
+          {
+            text: "Its already open",
+            shouldMoveCharacter: false,
+          },
+        ],
+      ]),
+    );
+
     // Street responses
     this.responses.set(
       "city-in-distance",
