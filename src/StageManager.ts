@@ -1,5 +1,5 @@
 import { Sprite, Container } from "pixi.js";
-import { Stage, StageTransition } from "./Stage";
+import { Stage, StageTransition, PerspectiveScale } from "./Stage";
 import { AssetManager } from "./AssetManager";
 import { ObjectManager } from "./ObjectManager";
 import { KeySprite } from "./KeySprite";
@@ -153,6 +153,12 @@ export class StageManager {
         ["cryptic-door", { x: 896, y: 713 }], // Right side of the street below bar entrance (673 + 40)
         ["city-in-distance", { x: 470, y: 616 }], // City in distance, on street (576 + 40)
       ]),
+      perspectiveScale: {
+        minY: 656, // At bar door position (background)
+        maxY: 713, // At cryptic door position (foreground)
+        minScale: 100 / 72, // Scale factor for 100px height at bar door (100 / sprite height 72)
+        maxScale: 250 / 72, // Scale factor for 250px height at cryptic door (250 / sprite height 72)
+      },
     };
 
     this.addStage(cyberpunkStage);
@@ -193,6 +199,12 @@ export class StageManager {
       interactionPoints: new Map([
         ["exit-door", { x: 850, y: 620 }], // Near the exit door, within walkable area
       ]),
+      perspectiveScale: {
+        minY: 613, // At back of room
+        maxY: 772, // At front of room  
+        minScale: 140 / 72, // Fixed scale for 140px height (140 / sprite height 72)
+        maxScale: 140 / 72, // Same scale throughout - no variation in small room
+      },
     };
 
     this.addStage(testIndoorStage);

@@ -13,6 +13,7 @@ import { ActionResponseSystem } from "./ActionResponseSystem";
 import { SpeechBubble } from "./SpeechBubble";
 import { StageManager } from "./StageManager";
 import { StageTransition } from "./Stage";
+import { PerspectiveScaler } from "./PerspectiveScaler";
 
 export class Game {
   private app!: Application;
@@ -31,6 +32,7 @@ export class Game {
   private actionResponseSystem: ActionResponseSystem;
   private speechBubble?: SpeechBubble;
   private stageManager: StageManager;
+  private perspectiveScaler: PerspectiveScaler;
 
   // UI layout configuration
   private gameAreaWidth: number = 1024; // Original game area (unchanged)
@@ -70,6 +72,7 @@ export class Game {
       this.objectManager,
       this.gameAreaWidth,
     );
+    this.perspectiveScaler = new PerspectiveScaler();
   }
 
   async initialize(): Promise<void> {
@@ -194,9 +197,8 @@ export class Game {
       throw new Error("No current stage available for character setup");
     }
 
-    // Position character at stage start position
-    // Scale up the 16x24 sprite for visibility (scale by 3)
-    this.characterSprite.scale.set(3, 3);
+    // Position character at stage start position  
+    // Sprite is now pre-scaled during generation, so no manual scaling needed here
     this.characterSprite.x = currentStage.characterStartPosition.x;
     this.characterSprite.y = currentStage.characterStartPosition.y;
 
@@ -215,6 +217,10 @@ export class Game {
     if (currentStage.interactionPoints) {
       this.characterController.setInteractionPoints(currentStage.interactionPoints);
     }
+
+    // Set up perspective scaling for current stage
+    this.perspectiveScaler.setPerspectiveConfig(currentStage.perspectiveScale);
+    this.perspectiveScaler.setBaseScale(1); // Base scale (sprite is already pre-scaled)
 
     // Create speech bubble (positioned above character)
     this.speechBubble = new SpeechBubble();
@@ -620,6 +626,9 @@ export class Game {
       this.characterController.setInteractionPoints(result.stage.interactionPoints);
     }
 
+    // Update perspective scaling for the new stage
+    this.perspectiveScaler.setPerspectiveConfig(result.stage.perspectiveScale);
+
     console.log(`Stage transition completed to: ${result.stage.name}`);
     console.log(`Character positioned at: (${result.characterPosition.x}, ${result.characterPosition.y})`);
     console.log(`Character sprite visible: ${this.characterSprite.visible}, alpha: ${this.characterSprite.alpha}`);
@@ -986,6 +995,11 @@ export class Game {
       this.characterController.update(currentTime);
     }
 
+    // Update character perspective scaling based on Y position
+    if (this.characterSprite) {
+      this.perspectiveScaler.updateSpriteScale(this.characterSprite);
+    }
+
     // Check if movement just completed and we have a pending action
     if (this.wasCharacterMoving && !isCurrentlyMoving && this.pendingAction) {
       // Execute pending action asynchronously but don't await to avoid blocking game loop
@@ -1133,6 +1147,10 @@ export class Game {
 
   getStageManager(): StageManager {
     return this.stageManager;
+  }
+
+  getPerspectiveScaler(): PerspectiveScaler {
+    return this.perspectiveScaler;
   }
 
   // Test method to add some sample inventory items

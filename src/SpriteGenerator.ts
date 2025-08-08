@@ -22,8 +22,9 @@ export class SpriteGenerator {
     "8": 0xffb6c1, // light pink - face
   };
 
-  private readonly spriteWidth = 16;
-  private readonly spriteHeight = 24;
+  private readonly spriteWidth = 16; // Original dimensions
+  private readonly spriteHeight = 24; // Original dimensions  
+  private readonly pixelScale = 3; // Scale factor for each pixel (3x3 blocks)
 
   // Character sprite frames as 16-character strings representing pixel rows
   private readonly characterFrames: SpriteFrame[] = [
@@ -161,7 +162,7 @@ export class SpriteGenerator {
   ): Texture {
     const graphics = new Graphics();
 
-    // Draw each pixel
+    // Draw each pixel as a scaled block for higher resolution
     for (let y = 0; y < this.spriteHeight; y++) {
       const row = pixelData[y] || "0000000000000000";
       for (let x = 0; x < this.spriteWidth; x++) {
@@ -171,14 +172,20 @@ export class SpriteGenerator {
         if (colorKey === "0") continue;
 
         const color = this.colorPalette[colorKey] || 0x000000;
-        graphics.rect(x, y, 1, 1).fill(color);
+        // Render each pixel as a pixelScale x pixelScale block
+        graphics.rect(
+          x * this.pixelScale, 
+          y * this.pixelScale, 
+          this.pixelScale, 
+          this.pixelScale
+        ).fill(color);
       }
     }
 
-    // Create texture from graphics using the renderer
+    // Create texture from graphics using the renderer with scaled dimensions
     const renderTexture = RenderTexture.create({
-      width: this.spriteWidth,
-      height: this.spriteHeight,
+      width: this.spriteWidth * this.pixelScale,
+      height: this.spriteHeight * this.pixelScale,
     });
 
     renderer.render(graphics, { renderTexture });
