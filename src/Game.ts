@@ -10,6 +10,8 @@ import { CommandPanel, ActionType } from "./CommandPanel";
 import { InteractiveObject } from "./InteractiveObject";
 import { InventorySystem, InventoryItem } from "./InventorySystem";
 import { KeySprite } from "./KeySprite";
+import { ActionResponseSystem } from "./ActionResponseSystem";
+import { SpeechBubble } from "./SpeechBubble";
 
 export class Game {
   private app!: Application;
@@ -27,6 +29,8 @@ export class Game {
   private commandPanel?: CommandPanel;
   private inventorySystem?: InventorySystem;
   private keySprite?: KeySprite;
+  private actionResponseSystem: ActionResponseSystem;
+  private speechBubble?: SpeechBubble;
 
   // UI layout configuration
   private gameAreaWidth: number = 1024; // Original game area (unchanged)
@@ -63,6 +67,7 @@ export class Game {
     this.assetManager = new AssetManager();
     this.spriteGenerator = new SpriteGenerator();
     this.objectManager = new ObjectManager();
+    this.actionResponseSystem = new ActionResponseSystem();
   }
 
   async initialize(): Promise<void> {
@@ -205,7 +210,13 @@ export class Game {
     // Set up walkable area using the dedicated walkable area polygon
     this.characterController.setWalkableArea(this.walkableArea);
 
-    console.log("Character sprite and controller created and added to stage");
+    // Create speech bubble (positioned above character)
+    this.speechBubble = new SpeechBubble();
+    this.app.stage.addChild(this.speechBubble);
+
+    console.log(
+      "Character sprite, controller, and speech bubble created and added to stage",
+    );
   }
 
   private setupUI(): void {
@@ -292,7 +303,7 @@ export class Game {
         if (currentAction !== "walk") {
           this.setPendingAction(currentAction, clickedObject);
         } else {
-          // For walk action on interactive areas, set flag to revert color when arrived
+          // For walk action on interactive areas, just set flag to revert color when arrived
           this.isPendingWalkActionColor = true;
         }
       } else {
@@ -431,27 +442,37 @@ export class Game {
       this.actionBar.revertColor();
     }
 
-    // TODO: Implement specific action logic here
-    // For now, just log what would happen
-    switch (action) {
-      case "look":
-        console.log(`Looking at ${object.name}: ${object.description}`);
-        break;
-      case "use":
-        console.log(`Using ${object.name}`);
-        break;
-      case "get":
-        console.log(`Trying to get ${object.name}`);
+    // Get the appropriate response for this object-action combination
+    const response = this.actionResponseSystem.getResponse(object.id, action);
+
+    if (response) {
+      // Show response text in speech bubble above character
+      if (this.speechBubble && this.characterSprite) {
+        this.speechBubble.positionAboveCharacter(
+          this.characterSprite.x,
+          this.characterSprite.y,
+        );
+        this.speechBubble.showSpeech(response.text);
+      }
+
+      // Handle special cases that need additional logic
+      if (action === "get" && object.id === "golden-key") {
+        // Special handling for pickupable items
         this.handleGetAction(object);
-        break;
-      case "talk":
-        console.log(`Talking to ${object.name}`);
-        break;
-      case "open":
-        console.log(`Trying to open ${object.name}`);
-        break;
-      default:
-        console.log(`Unknown action: ${action}`);
+      }
+
+      console.log(`${action.toUpperCase()}: ${response.text}`);
+    } else {
+      // Fallback for unknown object-action combinations
+      const fallbackText = `You can't ${action} the ${object.name}`;
+      if (this.speechBubble && this.characterSprite) {
+        this.speechBubble.positionAboveCharacter(
+          this.characterSprite.x,
+          this.characterSprite.y,
+        );
+        this.speechBubble.showSpeech(fallbackText);
+      }
+      console.log(`Unknown action: ${action} on ${object.name}`);
     }
 
     // Clear the pending action
