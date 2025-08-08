@@ -1,5 +1,6 @@
 import { Graphics } from "pixi.js";
 import { Position } from "./types";
+import { ActionType } from "./CommandPanel";
 
 export interface InteractiveObjectData {
   id: string;
@@ -8,6 +9,7 @@ export interface InteractiveObjectData {
   width: number;
   height: number;
   description: string;
+  defaultAction: ActionType; // Default action for right-click and highlighting
   polygon?: Position[]; // Optional polygon points for irregular shapes
 }
 
@@ -18,6 +20,7 @@ export class InteractiveObject {
   public readonly width: number;
   public readonly height: number;
   public readonly description: string;
+  public readonly defaultAction: ActionType; // Default action for right-click and highlighting
   public readonly polygon?: Position[]; // Optional polygon points for irregular shapes
   private highlightGraphics?: Graphics;
   private isHovered: boolean = false;
@@ -29,6 +32,7 @@ export class InteractiveObject {
     this.width = data.width;
     this.height = data.height;
     this.description = data.description;
+    this.defaultAction = data.defaultAction;
     this.polygon = data.polygon ? [...data.polygon] : undefined;
   }
 

@@ -13,6 +13,7 @@ export class InputManager {
   private gameHeight: number;
   private mouseState: MouseState;
   private onClickCallback?: (position: Position) => void;
+  private onRightClickCallback?: (position: Position) => void;
   private onHoverCallback?: (position: Position) => void;
   private onHoverExitCallback?: () => void;
 
@@ -42,6 +43,18 @@ export class InputManager {
       );
       if (this.onClickCallback) {
         this.onClickCallback(gameCoords);
+      }
+    });
+
+    // Right-click events
+    this.canvas.addEventListener("contextmenu", (event) => {
+      event.preventDefault(); // Prevent browser context menu
+      const gameCoords = this.screenToGameCoordinates(
+        event.clientX,
+        event.clientY,
+      );
+      if (this.onRightClickCallback) {
+        this.onRightClickCallback(gameCoords);
       }
     });
 
@@ -134,6 +147,10 @@ export class InputManager {
 
   setHoverCallback(callback: (position: Position) => void): void {
     this.onHoverCallback = callback;
+  }
+
+  setRightClickCallback(callback: (position: Position) => void): void {
+    this.onRightClickCallback = callback;
   }
 
   setHoverExitCallback(callback: () => void): void {

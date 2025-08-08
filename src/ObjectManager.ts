@@ -108,6 +108,7 @@ export class ObjectManager {
       width: 60 * scaleX,
       height: 40 * scaleY,
       description: "A glowing neon hotel sign",
+      defaultAction: "look", // Signs should be looked at
       polygon: [
         { x: 164, y: 17 },
         { x: 222, y: 29 },
@@ -123,6 +124,7 @@ export class ObjectManager {
       width: 40 * scaleX,
       height: 25 * scaleY,
       description: "A red neon bar sign",
+      defaultAction: "look", // Signs should be looked at
       polygon: [
         { x: 655, y: 364 },
         { x: 755, y: 316 },
@@ -138,6 +140,7 @@ export class ObjectManager {
       width: 30 * scaleX,
       height: 60 * scaleY,
       description: "A dark building entrance",
+      defaultAction: "open", // Doors/entrances should be opened
       polygon: [
         { x: 58, y: 381 },
         { x: 125, y: 393 },
@@ -153,6 +156,7 @@ export class ObjectManager {
       width: 60 * scaleX,
       height: 40 * scaleY,
       description: "An ornate door without a handle",
+      defaultAction: "open", // Doors should be opened
       polygon: [
         { x: 870, y: 391 },
         { x: 947, y: 375 },
@@ -168,6 +172,7 @@ export class ObjectManager {
       width: 60 * scaleX,
       height: 40 * scaleY,
       description: "The street leads into the depth of the city",
+      defaultAction: "walk", // Paths/streets should be walked to
       polygon: [
         { x: 419, y: 424 },
         { x: 552, y: 424 },
@@ -184,6 +189,7 @@ export class ObjectManager {
       width: 48, // 16 * 3 scale
       height: 24, // 8 * 3 scale
       description: "A shiny golden key that might unlock something important",
+      defaultAction: "get", // Items should be picked up
     });
 
     console.log(`Initialized ${this.objects.size} interactive objects`);

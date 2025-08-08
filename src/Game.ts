@@ -128,6 +128,11 @@ export class Game {
       this.handleCanvasClick(position);
     });
 
+    // Set up right-click handler
+    this.inputManager.setRightClickCallback((position: Position) => {
+      this.handleCanvasRightClick(position);
+    });
+
     // Set up hover handler
     this.inputManager.setHoverCallback((position: Position) => {
       this.handleCanvasHover(position);
@@ -363,6 +368,44 @@ export class Game {
     }
   }
 
+  private handleCanvasRightClick(position: Position): void {
+    console.log(
+      `Canvas right-clicked at game coordinates: (${position.x}, ${position.y})`,
+    );
+
+    // Check if right-click hit an interactive object
+    const clickedObject = this.objectManager.getObjectAtPosition(
+      position.x,
+      position.y,
+    );
+
+    if (clickedObject && this.characterController) {
+      console.log(
+        `Right-clicked on object: ${clickedObject.name} with default action: ${clickedObject.defaultAction}`,
+      );
+
+      // Execute the default action
+      this.executeDefaultAction(clickedObject.defaultAction, clickedObject);
+    } else {
+      // Check if right-click hit the UI area (inventory)
+      const uiAreaStartX = this.gameAreaWidth + 10;
+      if (position.x >= uiAreaStartX && this.inventorySystem) {
+        // Check if we hit an inventory item (this is a simplified check)
+        // For now, right-click on inventory is disabled - can be implemented later
+        const hoveredSlot = this.getInventorySlotAtPosition();
+        if (hoveredSlot !== undefined) {
+          const item = this.inventorySystem.getItem(hoveredSlot);
+          if (item) {
+            console.log(
+              `Right-clicked on inventory item: ${item.name} with default action: ${item.defaultAction}`,
+            );
+            this.executeDefaultInventoryAction(item.defaultAction, item);
+          }
+        }
+      }
+    }
+  }
+
   private handleCanvasHover(position: Position): void {
     // Don't handle canvas hover for UI area (inventory/command panel area)
     // UI area starts at gameAreaWidth + 10
@@ -383,9 +426,14 @@ export class Game {
       }
     }
 
-    // Update action bar text based on hovered object
-    if (this.actionBar) {
+    // Update action bar text and highlight default actions
+    if (this.actionBar && this.commandPanel) {
       if (hoveredObject) {
+        // Highlight the default action for this object
+        this.commandPanel.setDefaultActionHighlight(
+          hoveredObject.defaultAction,
+        );
+
         // If we have a selected inventory item, append the object name to "Use X with"
         if (this.selectedInventoryItem) {
           this.actionBar.updateText(
@@ -395,6 +443,9 @@ export class Game {
           this.actionBar.showObjectHover(hoveredObject.name);
         }
       } else {
+        // Clear default action highlighting when not hovering any object
+        this.commandPanel.clearDefaultActionHighlight();
+
         // If we have a selected inventory item, show "Use X with" when not hovering anything
         if (this.selectedInventoryItem) {
           this.actionBar.updateText(
@@ -410,6 +461,11 @@ export class Game {
   private handleCanvasHoverExit(): void {
     // Clear object hover states
     this.objectManager.clearHover();
+
+    // Clear default action highlighting
+    if (this.commandPanel) {
+      this.commandPanel.clearDefaultActionHighlight();
+    }
 
     // Reset cursor when mouse leaves canvas
     if (this.inputManager) {
@@ -457,6 +513,7 @@ export class Game {
         description: "A shiny golden key that might unlock something important",
         color: 0xffd700, // Gold color
         icon: "KEY",
+        defaultAction: "look", // All inventory items default to Look
       };
 
       // Try to add to inventory
@@ -737,11 +794,14 @@ export class Game {
   }
 
   private handleInventoryHover(_slotIndex: number, item?: InventoryItem): void {
-    if (item && this.actionBar) {
-      // If we have a selected inventory item, don't show normal hover text
+    if (item && this.actionBar && this.commandPanel) {
+      // If we have a selected inventory item, don't show normal hover text or highlighting
       if (this.selectedInventoryItem) {
         return;
       }
+
+      // Highlight the default action for this inventory item
+      this.commandPanel.setDefaultActionHighlight(item.defaultAction);
 
       // Show the appropriate action with item name based on current action
       const currentAction = this.gameState.currentAction;
@@ -773,7 +833,12 @@ export class Game {
   }
 
   private handleInventoryHoverExit(): void {
-    if (this.actionBar) {
+    if (this.actionBar && this.commandPanel) {
+      // Clear default action highlighting when leaving inventory
+      if (!this.selectedInventoryItem) {
+        this.commandPanel.clearDefaultActionHighlight();
+      }
+
       // Only revert to default text if we don't have a selected inventory item
       if (this.selectedInventoryItem) {
         // Keep showing "Use X with" text when leaving inventory area
@@ -852,6 +917,63 @@ export class Game {
     // PixiJS handles the main rendering automatically
   }
 
+  private executeDefaultAction(
+    action: ActionType,
+    object: InteractiveObject,
+  ): void {
+    // Temporarily set the game state to the default action
+    const previousAction = this.gameState.currentAction;
+    this.gameState.currentAction = action;
+
+    // Update action bar to show the default action with object name
+    if (this.actionBar) {
+      this.actionBar.showObjectHoverWithAction(object.name, action);
+    }
+
+    // Move character to object and execute the default action
+    const success = this.characterController?.moveToObject(object);
+
+    if (success) {
+      console.log(
+        `Moving to execute default action: ${action} on ${object.name}`,
+      );
+
+      // Flash action bar pink when object is clicked
+      if (this.actionBar) {
+        this.actionBar.flashPink();
+      }
+
+      // Store the pending action to execute when movement completes
+      this.setPendingAction(action, object);
+    } else {
+      console.log(`Cannot reach object: ${object.name}`);
+      // Restore previous action if movement failed
+      this.gameState.currentAction = previousAction;
+
+      // Restore previous action bar state if movement failed
+      if (this.actionBar) {
+        this.actionBar.setAction(previousAction);
+      }
+    }
+  }
+
+  private executeDefaultInventoryAction(
+    action: ActionType,
+    item: InventoryItem,
+  ): void {
+    // For inventory items, execute the action immediately (no movement required)
+    console.log(`Executing default action: ${action} on ${item.name}`);
+    this.handleInventoryItemAction(item, action);
+  }
+
+  private getInventorySlotAtPosition(): number | undefined {
+    // This is a simplified calculation - in reality you'd need to account for
+    // inventory positioning, slot size, spacing, etc.
+    // For now, returning undefined to disable right-click on inventory
+    // This can be implemented properly later if needed
+    return undefined;
+  }
+
   getScale(): number {
     return this.scale;
   }
@@ -916,6 +1038,7 @@ export class Game {
         description: "A plastic access card with a magnetic strip.",
         color: 0x4a90e2, // blue
         icon: "💳",
+        defaultAction: "look", // All inventory items default to Look
       },
       {
         id: "credits",
@@ -923,6 +1046,7 @@ export class Game {
         description: "Digita💴currency chips worth 100 credits.",
         color: 0xf5a623, // orange
         icon: "💴",
+        defaultAction: "look", // All inventory items default to Look
       },
       {
         id: "datapad",
@@ -930,6 +1054,7 @@ export class Game {
         description: "A small handheld device containing encrypted files.",
         color: 0x7ed321, // green
         icon: "📔",
+        defaultAction: "look", // All inventory items default to Look
       },
     ];
 

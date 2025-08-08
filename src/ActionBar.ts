@@ -93,9 +93,13 @@ export class ActionBar {
   }
 
   showObjectHover(objectName: string): void {
+    this.showObjectHoverWithAction(objectName, this.currentAction);
+  }
+
+  showObjectHoverWithAction(objectName: string, action: string): void {
     // Format action text with appropriate preposition for the object
     let actionText;
-    switch (this.currentAction.toLowerCase()) {
+    switch (action.toLowerCase()) {
       case "walk":
         actionText = `Walk to ${objectName.toLowerCase()}`;
         break;
@@ -115,7 +119,7 @@ export class ActionBar {
         actionText = `Open ${objectName.toLowerCase()}`;
         break;
       default:
-        actionText = `${this.currentAction} ${objectName.toLowerCase()}`;
+        actionText = `${action} ${objectName.toLowerCase()}`;
     }
 
     this.updateText(actionText);

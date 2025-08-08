@@ -5,6 +5,7 @@ import {
   TextStyle,
   FederatedPointerEvent,
 } from "pixi.js";
+import { ActionType } from "./CommandPanel";
 
 export interface InventoryItem {
   id: string;
@@ -12,6 +13,7 @@ export interface InventoryItem {
   description: string;
   color: number;
   icon: string;
+  defaultAction: ActionType; // Default action for right-click and highlighting
 }
 
 interface InventorySlot {

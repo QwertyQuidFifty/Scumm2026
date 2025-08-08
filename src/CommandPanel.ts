@@ -15,6 +15,7 @@ interface CommandButton {
   action: ActionType;
   isHovered: boolean;
   isSelected: boolean;
+  isDefaultHighlighted: boolean; // For highlighting default actions
 }
 
 export class CommandPanel {
@@ -108,6 +109,7 @@ export class CommandPanel {
       action,
       isHovered: false,
       isSelected: false,
+      isDefaultHighlighted: false,
     };
 
     // Set up event handlers
@@ -163,6 +165,8 @@ export class CommandPanel {
     let textColor;
     if (button.isSelected) {
       textColor = this.textColors.selected; // White for selected
+    } else if (button.isDefaultHighlighted) {
+      textColor = this.textColors.hover; // Hot pink for default action highlighting
     } else if (button.isHovered) {
       textColor = this.textColors.hover; // Pink for hover
     } else {
@@ -197,6 +201,29 @@ export class CommandPanel {
 
   getSelectedAction(): ActionType {
     return this.selectedAction;
+  }
+
+  setDefaultActionHighlight(action: ActionType): void {
+    // Clear all previous default highlights
+    for (const button of this.buttons.values()) {
+      button.isDefaultHighlighted = false;
+      this.updateButtonVisuals(button);
+    }
+
+    // Set new default highlight (only if it's not already selected)
+    const targetButton = this.buttons.get(action);
+    if (targetButton && !targetButton.isSelected) {
+      targetButton.isDefaultHighlighted = true;
+      this.updateButtonVisuals(targetButton);
+    }
+  }
+
+  clearDefaultActionHighlight(): void {
+    // Clear all default highlights
+    for (const button of this.buttons.values()) {
+      button.isDefaultHighlighted = false;
+      this.updateButtonVisuals(button);
+    }
   }
 
   setOnActionChange(callback: (action: ActionType) => void): void {
