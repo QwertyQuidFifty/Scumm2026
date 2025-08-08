@@ -8,24 +8,6 @@ import {
 
 export type ActionType = "walk" | "use" | "get" | "talk" | "look" | "open";
 
-interface ButtonState {
-  normal: {
-    backgroundColor: number;
-    borderColor: number;
-    borderStyle: "outset" | "inset";
-  };
-  hover: {
-    backgroundColor: number;
-    borderColor: number;
-    borderStyle: "outset" | "inset";
-  };
-  selected: {
-    backgroundColor: number;
-    borderColor: number;
-    borderStyle: "outset" | "inset";
-  };
-}
-
 interface CommandButton {
   container: Container;
   background: Graphics;
@@ -46,22 +28,10 @@ export class CommandPanel {
   private textStyle: TextStyle;
   private onActionChange?: (action: ActionType) => void;
 
-  private buttonState: ButtonState = {
-    normal: {
-      backgroundColor: 0x555555, // #555
-      borderColor: 0x666666, // #666
-      borderStyle: "outset",
-    },
-    hover: {
-      backgroundColor: 0x666666, // #666
-      borderColor: 0x666666, // #666
-      borderStyle: "outset",
-    },
-    selected: {
-      backgroundColor: 0x777777, // #777
-      borderColor: 0x666666, // #666
-      borderStyle: "inset",
-    },
+  private textColors = {
+    normal: 0xaa00ff, // bright purple
+    hover: 0xff69b4, // hot pink
+    selected: 0xffffff, // white
   };
 
   private actions: ActionType[] = [
@@ -83,8 +53,8 @@ export class CommandPanel {
   private setupTextStyle(): void {
     this.textStyle = new TextStyle({
       fontFamily: "Courier New",
-      fontSize: 22, // Even larger font size for better readability
-      fill: 0xffffff, // white
+      fontSize: 28, // Even larger font size without button boxes
+      fill: 0xaa00ff, // bright purple (will be overridden per button)
       align: "center",
     });
   }
@@ -100,7 +70,7 @@ export class CommandPanel {
 
   private createButton(action: ActionType, index: number): CommandButton {
     const container = new Container();
-    const background = new Graphics();
+    const background = new Graphics(); // Invisible background for alignment
     const text = new Text({
       text: action.charAt(0).toUpperCase() + action.slice(1).toLowerCase(),
       style: this.textStyle,
@@ -112,12 +82,17 @@ export class CommandPanel {
     container.x = col * (this.buttonWidth + this.buttonSpacing);
     container.y = row * (this.buttonHeight + this.buttonSpacing);
 
-    // Center text in button
+    // Draw invisible background box for alignment (0 alpha = invisible)
+    background
+      .rect(0, 0, this.buttonWidth, this.buttonHeight)
+      .fill({ color: 0x000000, alpha: 0 });
+
+    // Center text within the invisible button box
     text.anchor.set(0.5, 0.5);
     text.x = this.buttonWidth / 2;
     text.y = this.buttonHeight / 2;
 
-    // Add components to container
+    // Add both background and text to container
     container.addChild(background);
     container.addChild(text);
 
@@ -151,10 +126,8 @@ export class CommandPanel {
 
     container.on("pointerenter", (event: FederatedPointerEvent) => {
       event.stopPropagation();
-      if (!button.isSelected) {
-        button.isHovered = true;
-        this.updateButtonVisuals(button);
-      }
+      button.isHovered = true;
+      this.updateButtonVisuals(button);
     });
 
     container.on("pointerleave", (event: FederatedPointerEvent) => {
@@ -185,52 +158,23 @@ export class CommandPanel {
   }
 
   private updateButtonVisuals(button: CommandButton): void {
-    const bg = button.background;
-    bg.clear();
-
-    let state;
+    // Update text color based on button state (selected takes priority)
+    let textColor;
     if (button.isSelected) {
-      state = this.buttonState.selected;
+      textColor = this.textColors.selected; // White for selected
     } else if (button.isHovered) {
-      state = this.buttonState.hover;
+      textColor = this.textColors.hover; // Pink for hover
     } else {
-      state = this.buttonState.normal;
+      textColor = this.textColors.normal; // Bright purple for normal
     }
 
-    // Draw button background
-    bg.rect(0, 0, this.buttonWidth, this.buttonHeight).fill(
-      state.backgroundColor,
-    );
-
-    // Draw border based on style (outset/inset)
-    this.drawButtonBorder(bg, state.borderColor, state.borderStyle);
-  }
-
-  private drawButtonBorder(
-    graphics: Graphics,
-    borderColor: number,
-    style: "outset" | "inset",
-  ): void {
-    const w = this.buttonWidth;
-    const h = this.buttonHeight;
-    const borderWidth = 2;
-
-    if (style === "outset") {
-      // Light border on top and left (raised effect)
-      graphics.rect(0, 0, w, borderWidth).fill(0x888888); // top
-      graphics.rect(0, 0, borderWidth, h).fill(0x888888); // left
-
-      // Dark border on bottom and right (shadow effect)
-      graphics.rect(0, h - borderWidth, w, borderWidth).fill(0x333333); // bottom
-      graphics.rect(w - borderWidth, 0, borderWidth, h).fill(0x333333); // right
-    } else {
-      // Inset - reverse the light/dark borders
-      graphics.rect(0, 0, w, borderWidth).fill(0x333333); // top
-      graphics.rect(0, 0, borderWidth, h).fill(0x333333); // left
-
-      graphics.rect(0, h - borderWidth, w, borderWidth).fill(0x888888); // bottom
-      graphics.rect(w - borderWidth, 0, borderWidth, h).fill(0x888888); // right
-    }
+    // Create a new style for this specific button to avoid shared style issues
+    button.text.style = new TextStyle({
+      fontFamily: "Courier New",
+      fontSize: 28,
+      fill: textColor,
+      align: "center",
+    });
   }
 
   setSelectedAction(action: ActionType): void {

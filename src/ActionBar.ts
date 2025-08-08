@@ -9,6 +9,8 @@ export class ActionBar {
   private height: number = 40; // Reduced height for better space utilization
   private currentAction: string = "Walk";
   private defaultText: string = "Walk to";
+  private normalColor: number = 0xaa00ff; // bright purple
+  private flashColor: number = 0xff69b4; // hot pink
 
   constructor(width: number) {
     this.width = width;
@@ -23,7 +25,7 @@ export class ActionBar {
     this.textStyle = new TextStyle({
       fontFamily: "Courier New",
       fontSize: 20, // Reduced font size to fit smaller bar
-      fill: 0xffffff, // white
+      fill: this.normalColor, // bright purple to match action buttons
       align: "left",
     });
   }
@@ -145,6 +147,16 @@ export class ActionBar {
 
   getCurrentAction(): string {
     return this.currentAction;
+  }
+
+  flashPink(): void {
+    // Flash pink once when object is clicked
+    this.text.style.fill = this.flashColor;
+
+    // Revert to normal color after 150ms
+    setTimeout(() => {
+      this.text.style.fill = this.normalColor;
+    }, 150);
   }
 
   destroy(): void {

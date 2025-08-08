@@ -208,16 +208,21 @@ export class Game {
 
     // Calculate right-side UI positioning (in the black space to the right)
     const rightColumnX = this.gameAreaWidth + 10; // Original game area + padding
+    const actionBarSpacing = 15; // Space between action bar and action buttons
     const sectionSpacing = 25; // Larger spacing between action buttons and inventory
 
     // Create command panel (positioned in right column, 2x3 grid)
+    // Add space between action bar and buttons, align columns properly
     this.commandPanel = new CommandPanel();
-    this.commandPanel.setPosition(rightColumnX, 50); // Below action bar
+    const commandPanelY = this.actionBar!.getHeight() + actionBarSpacing;
+    this.commandPanel.setPosition(rightColumnX, commandPanelY);
     this.app.stage.addChild(this.commandPanel.getContainer());
 
-    // Create inventory system (positioned below command panel with extra separation, 2x5 grid)
+    // Create inventory system (positioned below command panel, aligned columns)
+    // Ensure left/right columns align between action buttons and inventory
     this.inventorySystem = new InventorySystem();
-    const inventoryY = 50 + this.commandPanel.getHeight() + sectionSpacing;
+    const inventoryY =
+      commandPanelY + this.commandPanel.getHeight() + sectionSpacing;
     this.inventorySystem.setPosition(rightColumnX, inventoryY);
     this.app.stage.addChild(this.inventorySystem.getContainer());
 
@@ -270,6 +275,11 @@ export class Game {
       if (success) {
         console.log(`Moving to ${currentAction} with: ${clickedObject.name}`);
 
+        // Flash action bar pink when object is clicked
+        if (this.actionBar) {
+          this.actionBar.flashPink();
+        }
+
         // Store the pending action to execute when movement completes
         if (currentAction !== "walk") {
           this.setPendingAction(currentAction, clickedObject);
@@ -286,6 +296,11 @@ export class Game {
 
       if (success) {
         console.log("Moving character to clicked position");
+
+        // Flash action bar pink when walking to empty area
+        if (this.actionBar) {
+          this.actionBar.flashPink();
+        }
       } else {
         console.log("Cannot move to that position - outside walkable area");
       }
