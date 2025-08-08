@@ -12,6 +12,7 @@ import { InventorySystem, InventoryItem } from "./InventorySystem";
 import { ActionResponseSystem } from "./ActionResponseSystem";
 import { SpeechBubble } from "./SpeechBubble";
 import { StageManager } from "./StageManager";
+import { StageTransition } from "./Stage";
 
 export class Game {
   private app!: Application;
@@ -541,6 +542,12 @@ export class Game {
         // Remove interactive object from object manager
         this.objectManager.removeObject("golden-key");
 
+        // Mark object as permanently removed from current stage
+        const currentStage = this.stageManager.getCurrentStage();
+        if (currentStage) {
+          this.stageManager.markObjectAsRemoved(currentStage.id, "golden-key");
+        }
+
         console.log("Golden key picked up and added to inventory");
       } else {
         console.log("Cannot pick up key - inventory is full");
@@ -548,6 +555,67 @@ export class Game {
     } else {
       console.log(`Cannot get ${object.name} - not a pickupable item`);
     }
+  }
+
+  private async handleStageTransition(transition: StageTransition): Promise<void> {
+    if (!this.characterController || !this.characterSprite) {
+      console.error("Cannot perform stage transition - character not initialized");
+      return;
+    }
+
+    console.log(`Transitioning to stage: ${transition.toStageId}`);
+
+    // Perform the stage transition
+    const result = await this.stageManager.transitionToStage(
+      transition.toStageId,
+      this.app.stage,
+      transition.targetPosition
+    );
+
+    if (!result.success || !result.stage || !result.characterPosition) {
+      console.error("Stage transition failed");
+      return;
+    }
+
+    // Update character position and walkable area for new stage
+    this.characterSprite.x = result.characterPosition.x;
+    this.characterSprite.y = result.characterPosition.y;
+    
+    // Ensure character sprite and highlights are visible above the new background
+    if (this.characterSprite.parent) {
+      // Move highlight container above stage background
+      const highlightContainer = this.objectManager.getHighlightContainer();
+      if (highlightContainer.parent) {
+        highlightContainer.parent.setChildIndex(
+          highlightContainer,
+          highlightContainer.parent.children.length - 1
+        );
+      }
+      
+      // Move character sprite to front
+      this.characterSprite.parent.setChildIndex(
+        this.characterSprite, 
+        this.characterSprite.parent.children.length - 1
+      );
+      
+      // Ensure speech bubble is also above background
+      if (this.speechBubble && this.speechBubble.parent) {
+        this.speechBubble.parent.setChildIndex(
+          this.speechBubble,
+          this.speechBubble.parent.children.length - 1
+        );
+      }
+    }
+    
+    // Update character controller with new stage's walkable area
+    this.characterController.setWalkableArea(result.stage.walkableArea);
+
+    console.log(`Stage transition completed to: ${result.stage.name}`);
+    console.log(`Character positioned at: (${result.characterPosition.x}, ${result.characterPosition.y})`);
+    console.log(`Character sprite visible: ${this.characterSprite.visible}, alpha: ${this.characterSprite.alpha}`);
+
+    // Revert to walk action after transition
+    this.revertToWalkAction();
   }
 
   private revertToWalkAction(): void {
@@ -578,7 +646,7 @@ export class Game {
     );
   }
 
-  private executePendingAction(): void {
+  private async executePendingAction(): Promise<void> {
     if (!this.pendingAction) return;
 
     const { action, object } = this.pendingAction;
@@ -587,6 +655,19 @@ export class Game {
     // Revert action bar color when we arrive at the object (before executing the action)
     if (this.actionBar) {
       this.actionBar.revertColor();
+    }
+
+    // Check for stage transitions first (for open/walk actions)
+    const currentStage = this.stageManager.getCurrentStage();
+    if (currentStage && (action === "open" || action === "walk")) {
+      const transition = this.stageManager.findTransition(currentStage.id, object.id);
+      if (transition) {
+        console.log(`Found stage transition from ${currentStage.id} to ${transition.toStageId}`);
+        await this.handleStageTransition(transition);
+        // Clear the pending action and return - no need for other responses
+        this.pendingAction = undefined;
+        return;
+      }
     }
 
     // Get the appropriate response for this object-action combination
@@ -897,7 +978,8 @@ export class Game {
 
     // Check if movement just completed and we have a pending action
     if (this.wasCharacterMoving && !isCurrentlyMoving && this.pendingAction) {
-      this.executePendingAction();
+      // Execute pending action asynchronously but don't await to avoid blocking game loop
+      this.executePendingAction().catch(console.error);
     }
 
     // Check if movement just completed and we have a pending item-object action

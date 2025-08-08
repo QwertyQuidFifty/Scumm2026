@@ -195,7 +195,7 @@ export class ActionResponseSystem {
         [
           "open",
           {
-            text: "The entrance door is locked tight.",
+            text: "I push open the entrance door and step inside.",
             shouldMoveCharacter: false,
           },
         ],
@@ -268,6 +268,45 @@ export class ActionResponseSystem {
           "open",
           {
             text: "I need to pick up the key first.",
+            shouldMoveCharacter: false,
+          },
+        ],
+      ]),
+    );
+
+    // Exit Door responses (for test indoor stage)
+    this.responses.set(
+      "exit-door",
+      new Map([
+        [
+          "look",
+          {
+            text: "It's the exit door leading back to the street.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "open",
+          {
+            text: "I open the door and step back onto the street.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "use",
+          { text: "I can use the door to leave.", shouldMoveCharacter: false },
+        ],
+        [
+          "get",
+          {
+            text: "I can't take the door with me.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "talk",
+          {
+            text: "The door doesn't respond.",
             shouldMoveCharacter: false,
           },
         ],

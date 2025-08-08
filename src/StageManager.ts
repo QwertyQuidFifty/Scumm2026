@@ -13,6 +13,8 @@ export class StageManager {
   private stageContainer: Container;
   private assetManager: AssetManager;
   private objectManager: ObjectManager;
+  // Track objects that have been permanently removed from stages
+  private removedObjects: Map<string, Set<string>> = new Map(); // stageId -> Set<objectId>
   constructor(
     assetManager: AssetManager,
     objectManager: ObjectManager,
@@ -148,7 +150,58 @@ export class StageManager {
 
     this.addStage(cyberpunkStage);
 
-    console.log(`Initialized ${this.stages.size} stages`);
+    // Define a test indoor stage (using mechstore background)
+    const testIndoorStage: Stage = {
+      id: "test-indoor",
+      name: "Mech Store",
+      backgroundAssetKey: "mechstore",
+      backgroundWidth: 1024,
+      backgroundHeight: 768,
+      walkableArea: [
+        // Floor area of the mechstore 
+        { x: 50, y: 750 },
+        { x: 50, y: 600 },
+        { x: 950, y: 600 },
+        { x: 950, y: 750 }
+      ],
+      objects: [
+        {
+          id: "exit-door",
+          name: "exit door",
+          position: { x: 50, y: 400 },
+          width: 100,
+          height: 150,
+          description: "The exit door leading back to the street",
+          defaultAction: "open",
+          polygon: [
+            { x: 50, y: 500 },
+            { x: 150, y: 500 },
+            { x: 150, y: 600 },
+            { x: 50, y: 600 }
+          ],
+        }
+      ],
+      characterStartPosition: { x: 500, y: 700 },
+    };
+
+    this.addStage(testIndoorStage);
+
+    // Add transitions between stages
+    this.addTransition({
+      fromStageId: "cyberpunk-street",
+      toStageId: "test-indoor",
+      triggerObjectId: "building-entrance",
+      targetPosition: { x: 500, y: 650 } // Center of indoor room
+    });
+
+    this.addTransition({
+      fromStageId: "test-indoor",
+      toStageId: "cyberpunk-street",
+      triggerObjectId: "exit-door",
+      targetPosition: { x: 108, y: 686 } // Near building entrance on street
+    });
+
+    console.log(`Initialized ${this.stages.size} stages and ${this.transitions.length} transitions`);
   }
 
   addStage(stage: Stage): void {
@@ -157,6 +210,41 @@ export class StageManager {
 
   addTransition(transition: StageTransition): void {
     this.transitions.push(transition);
+  }
+
+  findTransition(fromStageId: string, triggerObjectId: string): StageTransition | undefined {
+    return this.transitions.find(
+      t => t.fromStageId === fromStageId && t.triggerObjectId === triggerObjectId
+    );
+  }
+
+  async transitionToStage(
+    toStageId: string,
+    parentContainer: Container,
+    targetPosition?: { x: number; y: number }
+  ): Promise<{ success: boolean; stage?: Stage; characterPosition?: { x: number; y: number } }> {
+    const targetStage = this.stages.get(toStageId);
+    if (!targetStage) {
+      console.error(`Target stage not found: ${toStageId}`);
+      return { success: false };
+    }
+
+    console.log(`Transitioning from ${this.currentStage?.name || 'unknown'} to ${targetStage.name}`);
+
+    // Load the new stage
+    const success = await this.loadStage(toStageId, parentContainer);
+    if (!success) {
+      return { success: false };
+    }
+
+    // Determine character position in new stage
+    const characterPosition = targetPosition || targetStage.characterStartPosition;
+
+    return {
+      success: true,
+      stage: targetStage,
+      characterPosition
+    };
   }
 
   getCurrentStage(): Stage | undefined {
@@ -227,7 +315,11 @@ export class StageManager {
 
     // Add background to stage container and stage container to parent
     this.stageContainer.addChild(this.backgroundSprite);
-    parentContainer.addChild(this.stageContainer);
+    
+    // Only add stage container to parent if it's not already added
+    if (!this.stageContainer.parent) {
+      parentContainer.addChild(this.stageContainer);
+    }
 
     return true;
   }
@@ -239,18 +331,30 @@ export class StageManager {
       this.objectManager.removeObject(obj.id);
     }
 
-    // Add stage objects
+    // Add stage objects, but exclude ones that have been permanently removed
+    let loadedCount = 0;
     for (const objectData of stage.objects) {
-      this.objectManager.addObject(objectData);
+      if (!this.isObjectRemoved(stage.id, objectData.id)) {
+        this.objectManager.addObject(objectData);
+        loadedCount++;
+      } else {
+        console.log(`Skipping removed object: ${objectData.id} from stage: ${stage.name}`);
+      }
     }
 
     console.log(
-      `Loaded ${stage.objects.length} objects for stage: ${stage.name}`,
+      `Loaded ${loadedCount}/${stage.objects.length} objects for stage: ${stage.name}`,
     );
   }
 
   private loadKeySprite(stage: Stage, parentContainer: Container): void {
     if (!stage.keyPosition) return;
+
+    // Don't load key sprite if the golden-key object has been removed from this stage
+    if (this.isObjectRemoved(stage.id, "golden-key")) {
+      console.log(`Key sprite not loaded - golden-key has been removed from stage: ${stage.name}`);
+      return;
+    }
 
     this.keySprite = new KeySprite();
     this.keySprite.x = stage.keyPosition.x;
@@ -259,16 +363,20 @@ export class StageManager {
   }
 
   private cleanupCurrentStage(): void {
+    // Remove stage container from parent
+    if (this.stageContainer.parent) {
+      this.stageContainer.parent.removeChild(this.stageContainer);
+    }
+
     // Remove background sprite
     if (this.backgroundSprite) {
-      this.stageContainer.removeChild(this.backgroundSprite);
       this.backgroundSprite.destroy();
       this.backgroundSprite = undefined;
     }
 
-    // Remove key sprite
-    if (this.keySprite) {
-      // Key sprite is added directly to parent container, not stage container
+    // Remove key sprite from parent container
+    if (this.keySprite && this.keySprite.parent) {
+      this.keySprite.parent.removeChild(this.keySprite);
       this.keySprite.destroy();
       this.keySprite = undefined;
     }
@@ -296,6 +404,27 @@ export class StageManager {
       this.keySprite.destroy();
       this.keySprite = undefined;
     }
+  }
+
+  // Track an object as permanently removed from a stage
+  markObjectAsRemoved(stageId: string, objectId: string): void {
+    if (!this.removedObjects.has(stageId)) {
+      this.removedObjects.set(stageId, new Set());
+    }
+    this.removedObjects.get(stageId)!.add(objectId);
+    console.log(`Marked object ${objectId} as removed from stage ${stageId}`);
+  }
+
+  // Check if an object has been removed from a stage
+  isObjectRemoved(stageId: string, objectId: string): boolean {
+    const removedSet = this.removedObjects.get(stageId);
+    return removedSet ? removedSet.has(objectId) : false;
+  }
+
+  // Get all removed objects for a stage
+  getRemovedObjects(stageId: string): string[] {
+    const removedSet = this.removedObjects.get(stageId);
+    return removedSet ? Array.from(removedSet) : [];
   }
 
   destroy(): void {

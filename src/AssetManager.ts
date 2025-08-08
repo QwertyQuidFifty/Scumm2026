@@ -17,6 +17,11 @@ export class AssetManager {
       url: "/assets/cyberpunk.png",
       type: "image",
     },
+    {
+      name: "mechstore",
+      url: "/assets/mechstore-copilot.png",
+      type: "image",
+    },
   ];
 
   async loadAllAssets(): Promise<void> {
