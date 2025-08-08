@@ -26,13 +26,13 @@ export class CharacterController {
   private moveSpeed: number = 120; // pixels per second (doubled from original 60)
   private walkableArea?: Position[]; // The street polygon
 
-  // Interaction points for each object (within walkable area)
+  // Interaction points for each object (within walkable area) - adjusted for background offset
   private interactionPoints: Map<string, Position> = new Map([
-    ["hotel-sign", { x: 202, y: 617 }], // Near hotel sign, on street
-    ["bar-sign", { x: 689, y: 616 }], // Near bar sign, on street
-    ["building-entrance", { x: 108, y: 646 }], // Near building entrance, on street
-    ["cryptic-door", { x: 896, y: 673 }], // Right side of the street below bar entrance
-    ["city-in-distance", { x: 470, y: 576 }], // City in distance, on street
+    ["hotel-sign", { x: 202, y: 657 }], // Near hotel sign, on street (617 + 40)
+    ["bar-sign", { x: 689, y: 656 }], // Near bar sign, on street (616 + 40)
+    ["building-entrance", { x: 108, y: 686 }], // Near building entrance, on street (646 + 40)
+    ["cryptic-door", { x: 896, y: 713 }], // Right side of the street below bar entrance (673 + 40)
+    ["city-in-distance", { x: 470, y: 616 }], // City in distance, on street (576 + 40)
   ]);
 
   constructor(sprite: Sprite, sprites: CharacterSprites) {

@@ -91,7 +91,7 @@ export class ActionResponseSystem {
       ]),
     );
 
-        // Bar entrance responses
+    // Bar entrance responses
     this.responses.set(
       "bar-door",
       new Map([

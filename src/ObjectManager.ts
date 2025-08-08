@@ -110,10 +110,10 @@ export class ObjectManager {
       description: "A glowing neon hotel sign",
       defaultAction: "look", // Signs should be looked at
       polygon: [
-        { x: 164, y: 17 },
-        { x: 222, y: 29 },
-        { x: 226, y: 364 },
-        { x: 166, y: 354 },
+        { x: 164, y: 57 }, // 17 + 40 (background offset)
+        { x: 222, y: 69 }, // 29 + 40
+        { x: 226, y: 404 }, // 364 + 40
+        { x: 166, y: 394 }, // 354 + 40
       ],
     });
 
@@ -126,10 +126,10 @@ export class ObjectManager {
       description: "A red neon bar sign",
       defaultAction: "look", // Signs should be looked at
       polygon: [
-        { x: 655, y: 364 },
-        { x: 755, y: 316 },
-        { x: 750, y: 414 },
-        { x: 658, y: 443 },
+        { x: 655, y: 404 }, // 364 + 40
+        { x: 755, y: 356 }, // 316 + 40
+        { x: 750, y: 454 }, // 414 + 40
+        { x: 658, y: 483 }, // 443 + 40
       ],
     });
 
@@ -142,10 +142,10 @@ export class ObjectManager {
       description: "A dark building entrance",
       defaultAction: "open", // Doors/entrances should be opened
       polygon: [
-        { x: 58, y: 381 },
-        { x: 125, y: 393 },
-        { x: 123, y: 594 },
-        { x: 62, y: 610 },
+        { x: 58, y: 421 }, // 381 + 40
+        { x: 125, y: 433 }, // 393 + 40
+        { x: 123, y: 634 }, // 594 + 40
+        { x: 62, y: 650 }, // 610 + 40
       ],
     });
 
@@ -158,10 +158,10 @@ export class ObjectManager {
       description: "An ornate door without a handle",
       defaultAction: "open", // Doors should be opened
       polygon: [
-        { x: 870, y: 391 },
-        { x: 947, y: 375 },
-        { x: 947, y: 630 },
-        { x: 870, y: 615 },
+        { x: 870, y: 431 }, // 391 + 40
+        { x: 947, y: 415 }, // 375 + 40
+        { x: 947, y: 670 }, // 630 + 40
+        { x: 870, y: 655 }, // 615 + 40
       ],
     });
 
@@ -174,10 +174,10 @@ export class ObjectManager {
       description: "The street leads into the depth of the city",
       defaultAction: "walk", // Paths/streets should be walked to
       polygon: [
-        { x: 419, y: 424 },
-        { x: 552, y: 424 },
-        { x: 552, y: 542 },
-        { x: 419, y: 542 },
+        { x: 419, y: 464 }, // 424 + 40
+        { x: 552, y: 464 }, // 424 + 40
+        { x: 552, y: 582 }, // 542 + 40
+        { x: 419, y: 582 }, // 542 + 40
       ],
     });
     this.addObject({
@@ -189,10 +189,10 @@ export class ObjectManager {
       description: "The dimly lit entrance to the bar",
       defaultAction: "walk", // Paths/streets should be walked to
       polygon: [
-        { x: 720, y: 494 },
-        { x: 746, y: 496 },
-        { x: 746, y: 597 },
-        { x: 720, y: 593 },
+        { x: 720, y: 534 }, // 494 + 40
+        { x: 746, y: 536 }, // 496 + 40
+        { x: 746, y: 637 }, // 597 + 40
+        { x: 720, y: 633 }, // 593 + 40
       ],
     });
 
@@ -200,7 +200,7 @@ export class ObjectManager {
     this.addObject({
       id: "golden-key",
       name: "golden key",
-      position: { x: 500, y: 600 }, // Position on the street
+      position: { x: 500, y: 640 }, // Position on the street - adjusted for background move
       width: 48, // 16 * 3 scale
       height: 24, // 8 * 3 scale
       description: "A shiny golden key that might unlock something important",

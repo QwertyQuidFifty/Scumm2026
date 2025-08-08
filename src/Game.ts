@@ -47,19 +47,19 @@ export class Game {
   // Inventory item selection system
   private selectedInventoryItem?: InventoryItem;
 
-  // Walkable area polygon (street area)
+  // Walkable area polygon (street area) - adjusted for background moved down 40px
   private readonly walkableArea: Position[] = [
-    { x: 0, y: 763 },
-    { x: 3, y: 652 },
-    { x: 387, y: 570 },
-    { x: 568, y: 570 },
-    { x: 976, y: 667 },
-    { x: 1024, y: 763 },
+    { x: 0, y: 803 }, // 763 + 40
+    { x: 3, y: 692 }, // 652 + 40
+    { x: 387, y: 610 }, // 570 + 40
+    { x: 568, y: 610 }, // 570 + 40
+    { x: 976, y: 707 }, // 667 + 40
+    { x: 1024, y: 803 }, // 763 + 40
   ];
 
   private readonly config: GameConfig = {
     gameWidth: 1230, // Original 1024 + 196px UI column + 10px right padding
-    gameHeight: 768,
+    gameHeight: 808, // 768 + 40px for action bar above background
     backgroundColor: 0x000022,
     targetFPS: 60,
   };
@@ -113,7 +113,7 @@ export class Game {
     canvas.style.imageRendering = "crisp-edges";
     canvas.style.display = "block";
     canvas.style.width = "1230px"; // Updated to match new canvas width with right padding
-    canvas.style.height = "768px";
+    canvas.style.height = "808px"; // Extended to accommodate action bar above background
   }
 
   private setupInput(): void {
@@ -167,13 +167,13 @@ export class Game {
     if (backgroundTexture) {
       this.backgroundSprite = new Sprite(backgroundTexture);
 
-      // Scale background to fill original game area (1024x768) - unchanged
+      // Scale background to fill original game area (1024x768)
       this.backgroundSprite.width = this.gameAreaWidth;
-      this.backgroundSprite.height = this.config.gameHeight;
+      this.backgroundSprite.height = 768; // Keep original background height
 
-      // Position at top-left (0,0)
+      // Position below action bar (40px down from top)
       this.backgroundSprite.x = 0;
-      this.backgroundSprite.y = 0;
+      this.backgroundSprite.y = 40;
 
       this.app.stage.addChild(this.backgroundSprite);
     } else {
@@ -188,10 +188,10 @@ export class Game {
     // Add highlight container to stage (above background, below character)
     this.app.stage.addChild(this.objectManager.getHighlightContainer());
 
-    // Create and position key sprite
+    // Create and position key sprite - adjusted for background move
     this.keySprite = new KeySprite();
     this.keySprite.x = 500;
-    this.keySprite.y = 600;
+    this.keySprite.y = 640; // 600 + 40px offset
     this.app.stage.addChild(this.keySprite);
 
     console.log("Interactive objects and key sprite initialized");
@@ -210,11 +210,11 @@ export class Game {
     // Set anchor to bottom center (0.5, 1.0) so sprite aligns naturally to ground
     this.characterSprite.anchor.set(0.5, 1.0);
 
-    // Position character within the walkable area (street)
+    // Position character within the walkable area (street) - adjusted for background move
     // Scale up the 16x24 sprite for visibility (scale by 3)
     this.characterSprite.scale.set(3, 3);
     this.characterSprite.x = 400; // Center of street area
-    this.characterSprite.y = 650; // Within street polygon
+    this.characterSprite.y = 690; // 650 + 40px offset for background move
 
     this.app.stage.addChild(this.characterSprite);
 

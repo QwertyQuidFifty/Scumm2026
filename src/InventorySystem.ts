@@ -40,9 +40,9 @@ export class InventorySystem {
 
   private slotColors = {
     empty: {
-      normal: 0x444444, // #444
-      hover: 0x555555, // #555
-      border: 0x666666, // #666
+      normal: 0x222222, // Darker consistent color for all slots (#222)
+      hover: 0x333333, // Slightly lighter on hover (#333)
+      border: 0x666666, // Not used anymore
     },
   };
 
@@ -168,30 +168,18 @@ export class InventorySystem {
     const bg = slot.background;
     bg.clear();
 
-    if (slot.item) {
-      // Draw item with no background color - only border
-      bg.rect(0, 0, this.slotWidth, this.slotHeight).stroke({
-        color: this.slotColors.empty.border,
-        width: 2,
-      });
+    // All slots get the same background color - filled or empty
+    const backgroundColor = slot.isHovered
+      ? this.slotColors.empty.hover
+      : this.slotColors.empty.normal;
 
-      // Update text to show item icon
+    bg.rect(0, 0, this.slotWidth, this.slotHeight).fill(backgroundColor);
+
+    if (slot.item) {
+      // Show item icon on top of background
       slot.text.text = slot.item.icon;
       slot.text.visible = true;
     } else {
-      // Draw empty slot
-      const backgroundColor = slot.isHovered
-        ? this.slotColors.empty.hover
-        : this.slotColors.empty.normal;
-
-      bg.rect(0, 0, this.slotWidth, this.slotHeight).fill(backgroundColor);
-
-      // Add border
-      bg.rect(0, 0, this.slotWidth, this.slotHeight).stroke({
-        color: this.slotColors.empty.border,
-        width: 2,
-      });
-
       // Hide text for empty slots
       slot.text.text = "";
       slot.text.visible = false;
