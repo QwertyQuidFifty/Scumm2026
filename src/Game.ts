@@ -448,11 +448,12 @@ export class Game {
     if (response) {
       // Show response text in speech bubble above character
       if (this.speechBubble && this.characterSprite) {
+        this.speechBubble.showSpeech(response.text);
         this.speechBubble.positionAboveCharacter(
           this.characterSprite.x,
           this.characterSprite.y,
+          this.config.gameHeight,
         );
-        this.speechBubble.showSpeech(response.text);
       }
 
       // Handle special cases that need additional logic
@@ -466,11 +467,12 @@ export class Game {
       // Fallback for unknown object-action combinations
       const fallbackText = `I can't ${action} the ${object.name}.`;
       if (this.speechBubble && this.characterSprite) {
+        this.speechBubble.showSpeech(fallbackText);
         this.speechBubble.positionAboveCharacter(
           this.characterSprite.x,
           this.characterSprite.y,
+          this.config.gameHeight,
         );
-        this.speechBubble.showSpeech(fallbackText);
       }
       console.log(`Unknown action: ${action} on ${object.name}`);
     }

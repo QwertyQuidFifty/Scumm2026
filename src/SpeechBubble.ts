@@ -80,9 +80,53 @@ export class SpeechBubble extends Container {
     return this.isVisible;
   }
 
-  positionAboveCharacter(characterX: number, characterY: number): void {
-    this.x = characterX;
-    this.y = characterY - 100; // Position well above character sprite to not obscure it
+  positionAboveCharacter(
+    characterX: number,
+    characterY: number,
+    stageHeight: number = 768,
+  ): void {
+    // Ensure text bounds are available
+    if (!this.speechText.text) {
+      this.x = characterX;
+      this.y = characterY - 100;
+      return;
+    }
+
+    // Default position above character
+    let targetX = characterX;
+    let targetY = characterY - 100;
+
+    // Get text bounds for boundary calculations (after text is set)
+    const textBounds = this.speechText.getBounds();
+    const textWidth = textBounds.width;
+    const textHeight = textBounds.height;
+
+    // Boundary margins
+    const margin = 10;
+    const gameAreaWidth = 1024; // Keep text within game area, not in UI space (hardcoded to exclude UI)
+
+    // Check horizontal boundaries
+    if (targetX - textWidth / 2 < margin) {
+      // Too close to left edge, shift right
+      targetX = margin + textWidth / 2;
+    } else if (targetX + textWidth / 2 > gameAreaWidth - margin) {
+      // Too close to right edge (or UI area), shift left
+      targetX = gameAreaWidth - margin - textWidth / 2;
+    }
+
+    // Check vertical boundaries
+    if (targetY - textHeight < margin) {
+      // Too close to top edge, position below character instead
+      targetY = characterY + 50; // Position below character
+
+      // Make sure it doesn't go off bottom either
+      if (targetY + textHeight > stageHeight - margin) {
+        targetY = stageHeight - margin - textHeight;
+      }
+    }
+
+    this.x = targetX;
+    this.y = targetY;
   }
 
   destroy(): void {
