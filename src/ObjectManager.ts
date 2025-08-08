@@ -175,6 +175,17 @@ export class ObjectManager {
         { x: 419, y: 542 },
       ],
     });
+
+    // Add interactive key object that can be picked up
+    this.addObject({
+      id: "golden-key",
+      name: "golden key",
+      position: { x: 500, y: 600 }, // Position on the street
+      width: 48, // 16 * 3 scale
+      height: 24, // 8 * 3 scale
+      description: "A shiny golden key that might unlock something important",
+    });
+
     console.log(`Initialized ${this.objects.size} interactive objects`);
   }
 

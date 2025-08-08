@@ -9,6 +9,7 @@ import { ActionBar } from "./ActionBar";
 import { CommandPanel, ActionType } from "./CommandPanel";
 import { InteractiveObject } from "./InteractiveObject";
 import { InventorySystem, InventoryItem } from "./InventorySystem";
+import { KeySprite } from "./KeySprite";
 
 export class Game {
   private app!: Application;
@@ -25,14 +26,15 @@ export class Game {
   private actionBar?: ActionBar;
   private commandPanel?: CommandPanel;
   private inventorySystem?: InventorySystem;
+  private keySprite?: KeySprite;
 
   // UI layout configuration
   private gameAreaWidth: number = 1024; // Original game area (unchanged)
-  private uiAreaWidth: number = 196; // Wider UI column for larger elements
 
   // Pending action system
   private pendingAction?: { action: ActionType; object: InteractiveObject };
   private wasCharacterMoving: boolean = false;
+  private isPendingWalkActionColor: boolean = false;
 
   // Walkable area polygon (street area)
   private readonly walkableArea: Position[] = [
@@ -164,7 +166,13 @@ export class Game {
     // Add highlight container to stage (above background, below character)
     this.app.stage.addChild(this.objectManager.getHighlightContainer());
 
-    console.log("Interactive objects initialized");
+    // Create and position key sprite
+    this.keySprite = new KeySprite();
+    this.keySprite.x = 500;
+    this.keySprite.y = 600;
+    this.app.stage.addChild(this.keySprite);
+
+    console.log("Interactive objects and key sprite initialized");
   }
 
   private setupCharacter(): void {
@@ -283,6 +291,9 @@ export class Game {
         // Store the pending action to execute when movement completes
         if (currentAction !== "walk") {
           this.setPendingAction(currentAction, clickedObject);
+        } else {
+          // For walk action on interactive areas, set flag to revert color when arrived
+          this.isPendingWalkActionColor = true;
         }
       } else {
         console.log(`Cannot reach object: ${clickedObject.name}`);
@@ -300,12 +311,7 @@ export class Game {
         // Flash action bar pink when walking to empty area
         if (this.actionBar) {
           this.actionBar.flashPink();
-          // For walk actions, revert color immediately since movement is the action
-          setTimeout(() => {
-            if (this.actionBar) {
-              this.actionBar.revertColor();
-            }
-          }, 150);
+          this.isPendingWalkActionColor = true;
         }
       } else {
         console.log("Cannot move to that position - outside walkable area");
@@ -363,6 +369,39 @@ export class Game {
     console.log(`Current action changed to: ${action}`);
   }
 
+  private handleGetAction(object: InteractiveObject): void {
+    // Handle pickup action for specific objects
+    if (object.id === "golden-key" && this.keySprite && this.inventorySystem) {
+      // Create inventory item for the key
+      const keyItem: InventoryItem = {
+        id: "golden-key",
+        name: "Golden Key",
+        description: "A shiny golden key that might unlock something important",
+        color: 0xffd700, // Gold color
+        icon: "KEY",
+      };
+
+      // Try to add to inventory
+      const success = this.inventorySystem.addItem(keyItem);
+
+      if (success) {
+        // Remove visual sprite from scene
+        this.app.stage.removeChild(this.keySprite);
+        this.keySprite.destroy();
+        this.keySprite = undefined;
+
+        // Remove interactive object from object manager
+        this.objectManager.removeObject("golden-key");
+
+        console.log("Golden key picked up and added to inventory");
+      } else {
+        console.log("Cannot pick up key - inventory is full");
+      }
+    } else {
+      console.log(`Cannot get ${object.name} - not a pickupable item`);
+    }
+  }
+
   private revertToWalkAction(): void {
     // Revert to walk action after executing another action
     if (this.commandPanel) {
@@ -387,6 +426,11 @@ export class Game {
     const { action, object } = this.pendingAction;
     console.log(`Executing pending action: ${action} on ${object.name}`);
 
+    // Revert action bar color when we arrive at the object (before executing the action)
+    if (this.actionBar) {
+      this.actionBar.revertColor();
+    }
+
     // TODO: Implement specific action logic here
     // For now, just log what would happen
     switch (action) {
@@ -398,6 +442,7 @@ export class Game {
         break;
       case "get":
         console.log(`Trying to get ${object.name}`);
+        this.handleGetAction(object);
         break;
       case "talk":
         console.log(`Talking to ${object.name}`);
@@ -411,11 +456,6 @@ export class Game {
 
     // Clear the pending action
     this.pendingAction = undefined;
-
-    // Revert action bar color when action is complete
-    if (this.actionBar) {
-      this.actionBar.revertColor();
-    }
 
     // Revert to walk action after executing the action
     this.revertToWalkAction();
@@ -477,6 +517,18 @@ export class Game {
     // Check if movement just completed and we have a pending action
     if (this.wasCharacterMoving && !isCurrentlyMoving && this.pendingAction) {
       this.executePendingAction();
+    }
+
+    // Check if walk action just completed and we need to revert action bar color
+    if (
+      this.wasCharacterMoving &&
+      !isCurrentlyMoving &&
+      this.isPendingWalkActionColor
+    ) {
+      if (this.actionBar) {
+        this.actionBar.revertColor();
+      }
+      this.isPendingWalkActionColor = false;
     }
 
     // Update movement tracking for next frame
