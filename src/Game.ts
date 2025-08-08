@@ -464,7 +464,7 @@ export class Game {
       console.log(`${action.toUpperCase()}: ${response.text}`);
     } else {
       // Fallback for unknown object-action combinations
-      const fallbackText = `You can't ${action} the ${object.name}`;
+      const fallbackText = `I can't ${action} the ${object.name}.`;
       if (this.speechBubble && this.characterSprite) {
         this.speechBubble.positionAboveCharacter(
           this.characterSprite.x,
@@ -624,21 +624,21 @@ export class Game {
         name: "Key Card",
         description: "A plastic access card with a magnetic strip.",
         color: 0x4a90e2, // blue
-        icon: "KEY",
+        icon: "💳",
       },
       {
         id: "credits",
         name: "Credits",
-        description: "Digital currency chips worth 100 credits.",
+        description: "Digita💴currency chips worth 100 credits.",
         color: 0xf5a623, // orange
-        icon: "¢100",
+        icon: "💴",
       },
       {
         id: "datapad",
         name: "Data Pad",
         description: "A small handheld device containing encrypted files.",
         color: 0x7ed321, // green
-        icon: "PAD",
+        icon: "📔",
       },
     ];
 

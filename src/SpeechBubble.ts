@@ -1,23 +1,19 @@
-import { Container, Graphics, Text, TextStyle } from "pixi.js";
+import { Container, Text, TextStyle } from "pixi.js";
 
 export class SpeechBubble extends Container {
-  private bubble: Graphics;
   private speechText: Text;
   private textStyle: TextStyle;
   private isVisible: boolean = false;
   private hideTimer?: number;
 
-  private readonly bubbleColor: number = 0x000000; // Black background
   private readonly textColor: number = 0xffffff; // White text
-  private readonly borderColor: number = 0xffffff; // White border
-  private readonly padding: number = 8;
-  private readonly maxWidth: number = 200;
-  private readonly fontSize: number = 14;
+  private readonly shadowColor: number = 0x000000; // Black shadow
+  private readonly maxWidth: number = 400;
+  private readonly fontSize: number = 28; // Double the original size
 
   constructor() {
     super();
     this.setupTextStyle();
-    this.setupBubble();
     this.setupText();
     this.visible = false;
   }
@@ -29,14 +25,11 @@ export class SpeechBubble extends Container {
       fill: this.textColor,
       align: "center",
       wordWrap: true,
-      wordWrapWidth: this.maxWidth - this.padding * 2,
+      wordWrapWidth: this.maxWidth,
       breakWords: true,
+      // Add black shadow/stroke for contrast
+      stroke: { color: this.shadowColor, width: 2 },
     });
-  }
-
-  private setupBubble(): void {
-    this.bubble = new Graphics();
-    this.addChild(this.bubble);
   }
 
   private setupText(): void {
@@ -45,53 +38,8 @@ export class SpeechBubble extends Container {
       style: this.textStyle,
     });
 
-    this.speechText.anchor.set(0.5, 0.5);
+    this.speechText.anchor.set(0.5, 1.0); // Anchor to bottom center
     this.addChild(this.speechText);
-  }
-
-  private drawBubble(textWidth: number, textHeight: number): void {
-    this.bubble.clear();
-
-    const bubbleWidth = textWidth + this.padding * 2;
-    const bubbleHeight = textHeight + this.padding * 2;
-
-    // Draw rounded rectangle background
-    this.bubble
-      .roundRect(
-        -bubbleWidth / 2,
-        -bubbleHeight / 2 - 10, // Offset up to appear above character
-        bubbleWidth,
-        bubbleHeight,
-        8,
-      )
-      .fill(this.bubbleColor);
-
-    // Draw white border
-    this.bubble
-      .roundRect(
-        -bubbleWidth / 2,
-        -bubbleHeight / 2 - 10,
-        bubbleWidth,
-        bubbleHeight,
-        8,
-      )
-      .stroke({ color: this.borderColor, width: 2 });
-
-    // Draw speech bubble tail pointing down to character
-    this.bubble
-      .moveTo(0, -10)
-      .lineTo(-8, -20)
-      .lineTo(8, -20)
-      .closePath()
-      .fill(this.bubbleColor);
-
-    // Border for tail
-    this.bubble
-      .moveTo(0, -10)
-      .lineTo(-8, -20)
-      .lineTo(8, -20)
-      .closePath()
-      .stroke({ color: this.borderColor, width: 2 });
   }
 
   showSpeech(text: string, duration: number = 3000): void {
@@ -103,14 +51,10 @@ export class SpeechBubble extends Container {
     // Set the text
     this.speechText.text = text;
 
-    // Position text
-    this.speechText.y = -10; // Above character, accounting for tail
+    // Position text above character (no bubble tail needed)
+    this.speechText.y = 0;
 
-    // Draw bubble based on text dimensions
-    const textBounds = this.speechText.getBounds();
-    this.drawBubble(textBounds.width, textBounds.height);
-
-    // Show the bubble
+    // Show the text
     this.visible = true;
     this.isVisible = true;
 
@@ -119,7 +63,7 @@ export class SpeechBubble extends Container {
       this.hideSpeech();
     }, duration);
 
-    console.log(`Speech bubble: "${text}"`);
+    console.log(`Speech text: "${text}"`);
   }
 
   hideSpeech(): void {
@@ -138,7 +82,7 @@ export class SpeechBubble extends Container {
 
   positionAboveCharacter(characterX: number, characterY: number): void {
     this.x = characterX;
-    this.y = characterY - 60; // Position above character sprite
+    this.y = characterY - 100; // Position well above character sprite to not obscure it
   }
 
   destroy(): void {
@@ -146,7 +90,6 @@ export class SpeechBubble extends Container {
       clearTimeout(this.hideTimer);
     }
 
-    this.bubble.destroy();
     this.speechText.destroy();
     super.destroy();
   }

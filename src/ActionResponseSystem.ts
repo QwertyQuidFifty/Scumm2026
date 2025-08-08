@@ -20,32 +20,32 @@ export class ActionResponseSystem {
         [
           "look",
           {
-            text: "A glowing neon hotel sign advertising cheap rooms",
+            text: "It's a glowing neon hotel sign advertising cheap rooms.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "use",
-          { text: "You can't use the hotel sign", shouldMoveCharacter: false },
+          { text: "I can't use the hotel sign.", shouldMoveCharacter: false },
         ],
         [
           "get",
           {
-            text: "The hotel sign is firmly attached to the wall",
+            text: "The hotel sign is firmly attached to the wall.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "talk",
           {
-            text: "The hotel sign doesn't respond",
+            text: "The hotel sign doesn't respond.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "open",
           {
-            text: "The hotel sign cannot be opened",
+            text: "The hotel sign cannot be opened.",
             shouldMoveCharacter: false,
           },
         ],
@@ -59,31 +59,34 @@ export class ActionResponseSystem {
         [
           "look",
           {
-            text: "A red neon bar sign flickering in the night",
+            text: "It's a red neon bar sign flickering in the night.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "use",
-          { text: "You can't use the bar sign", shouldMoveCharacter: false },
+          { text: "I can't use the bar sign.", shouldMoveCharacter: false },
         ],
         [
           "get",
           {
-            text: "The bar sign is too high up to reach",
+            text: "The bar sign is too high up for me to reach.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "talk",
           {
-            text: "The bar sign buzzes but says nothing",
+            text: "The bar sign buzzes but says nothing.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "open",
-          { text: "The bar sign cannot be opened", shouldMoveCharacter: false },
+          {
+            text: "The bar sign cannot be opened.",
+            shouldMoveCharacter: false,
+          },
         ],
       ]),
     );
@@ -95,25 +98,25 @@ export class ActionResponseSystem {
         [
           "look",
           {
-            text: "The street leads into the depth of the city",
+            text: "The street leads into the depth of the city.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "use",
           {
-            text: "You can't use the street itself",
+            text: "I can't use the street itself.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "get",
-          { text: "You can't pick up the street", shouldMoveCharacter: false },
+          { text: "I can't pick up the street.", shouldMoveCharacter: false },
         ],
-        ["talk", { text: "The street is silent", shouldMoveCharacter: false }],
+        ["talk", { text: "The street is silent.", shouldMoveCharacter: false }],
         [
           "open",
-          { text: "There's nothing to open here", shouldMoveCharacter: false },
+          { text: "There's nothing to open here.", shouldMoveCharacter: false },
         ],
       ]),
     );
@@ -125,35 +128,35 @@ export class ActionResponseSystem {
         [
           "look",
           {
-            text: "A dark building entrance shrouded in shadows",
+            text: "It's a dark building entrance shrouded in shadows.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "use",
           {
-            text: "You try the entrance but it seems locked",
+            text: "I try the entrance but it seems locked.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "get",
           {
-            text: "You can't take the entire building",
+            text: "I can't take the entire building.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "talk",
           {
-            text: "No one answers from the dark entrance",
+            text: "No one answers from the dark entrance.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "open",
           {
-            text: "The entrance door is locked tight",
+            text: "The entrance door is locked tight.",
             shouldMoveCharacter: false,
           },
         ],
@@ -167,29 +170,32 @@ export class ActionResponseSystem {
         [
           "look",
           {
-            text: "An ornate door without a handle, covered in strange symbols",
+            text: "It's an ornate door without a handle, covered in strange symbols.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "use",
-          { text: "The door has no handle to use", shouldMoveCharacter: false },
+          {
+            text: "The door has no handle for me to use.",
+            shouldMoveCharacter: false,
+          },
         ],
         [
           "get",
-          { text: "The door is part of the wall", shouldMoveCharacter: false },
+          { text: "The door is part of the wall.", shouldMoveCharacter: false },
         ],
         [
           "talk",
           {
-            text: "The door remains mysteriously silent",
+            text: "The door remains mysteriously silent.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "open",
           {
-            text: "Without a handle, you cannot open the door",
+            text: "Without a handle, I cannot open the door.",
             shouldMoveCharacter: false,
           },
         ],
@@ -203,26 +209,26 @@ export class ActionResponseSystem {
         [
           "look",
           {
-            text: "A shiny golden key that might unlock something important",
+            text: "It's a shiny golden key that might unlock something important.",
             shouldMoveCharacter: false,
           },
         ],
         [
           "use",
-          { text: "You need to pick it up first", shouldMoveCharacter: false },
+          { text: "I need to pick it up first.", shouldMoveCharacter: false },
         ],
         [
           "get",
-          { text: "You pick up the golden key", shouldMoveCharacter: false },
+          { text: "I pick up the golden key.", shouldMoveCharacter: false },
         ], // Special handling in Game.ts
         [
           "talk",
-          { text: "The key doesn't respond", shouldMoveCharacter: false },
+          { text: "The key doesn't respond.", shouldMoveCharacter: false },
         ],
         [
           "open",
           {
-            text: "You need to pick up the key first",
+            text: "I need to pick up the key first.",
             shouldMoveCharacter: false,
           },
         ],

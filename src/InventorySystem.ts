@@ -53,7 +53,7 @@ export class InventorySystem {
   private setupTextStyle(): void {
     this.textStyle = new TextStyle({
       fontFamily: "Courier New",
-      fontSize: 20, // Increased font size for larger slots
+      fontSize: 38, // Increased font size for larger slots
       fill: 0xffffff, // white
       align: "center",
       fontWeight: "bold",
