@@ -146,6 +146,13 @@ export class StageManager {
       ],
       characterStartPosition: { x: 400, y: 690 },
       keyPosition: { x: 500, y: 640 },
+      interactionPoints: new Map([
+        ["hotel-sign", { x: 202, y: 657 }], // Near hotel sign, on street (617 + 40)
+        ["bar-sign", { x: 689, y: 656 }], // Near bar sign, on street (616 + 40)
+        ["building-entrance", { x: 108, y: 686 }], // Near building entrance, on street (646 + 40)
+        ["cryptic-door", { x: 896, y: 713 }], // Right side of the street below bar entrance (673 + 40)
+        ["city-in-distance", { x: 470, y: 616 }], // City in distance, on street (576 + 40)
+      ]),
     };
 
     this.addStage(cyberpunkStage);
@@ -159,10 +166,11 @@ export class StageManager {
       backgroundHeight: 768,
       walkableArea: [
         // Floor area of the mechstore 
-        { x: 50, y: 750 },
-        { x: 50, y: 600 },
-        { x: 950, y: 600 },
-        { x: 950, y: 750 }
+        { x: 336, y: 613 },
+        { x: 899, y: 613 },
+        { x: 899, y: 772 },
+        { x: 227, y: 772 },
+        { x: 336, y: 613 }
       ],
       objects: [
         {
@@ -174,14 +182,17 @@ export class StageManager {
           description: "The exit door leading back to the street",
           defaultAction: "open",
           polygon: [
-            { x: 50, y: 500 },
-            { x: 150, y: 500 },
-            { x: 150, y: 600 },
-            { x: 50, y: 600 }
+            { x: 856, y: 258 },
+            { x: 923, y: 258 },
+            { x: 923, y: 638 },
+            { x: 856, y: 599 }
           ],
         }
       ],
-      characterStartPosition: { x: 500, y: 700 },
+      characterStartPosition: { x: 863, y: 628 },
+      interactionPoints: new Map([
+        ["exit-door", { x: 850, y: 620 }], // Near the exit door, within walkable area
+      ]),
     };
 
     this.addStage(testIndoorStage);
@@ -191,14 +202,14 @@ export class StageManager {
       fromStageId: "cyberpunk-street",
       toStageId: "test-indoor",
       triggerObjectId: "building-entrance",
-      targetPosition: { x: 500, y: 650 } // Center of indoor room
+      targetPosition: { x: 863, y: 628 } // Center of indoor room
     });
 
     this.addTransition({
       fromStageId: "test-indoor",
       toStageId: "cyberpunk-street",
       triggerObjectId: "exit-door",
-      targetPosition: { x: 108, y: 686 } // Near building entrance on street
+      targetPosition: { x: 104, y: 675 } // Near building entrance on street
     });
 
     console.log(`Initialized ${this.stages.size} stages and ${this.transitions.length} transitions`);

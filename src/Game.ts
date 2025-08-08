@@ -211,6 +211,11 @@ export class Game {
     // Set up walkable area from current stage
     this.characterController.setWalkableArea(currentStage.walkableArea);
 
+    // Set up interaction points from current stage
+    if (currentStage.interactionPoints) {
+      this.characterController.setInteractionPoints(currentStage.interactionPoints);
+    }
+
     // Create speech bubble (positioned above character)
     this.speechBubble = new SpeechBubble();
     this.app.stage.addChild(this.speechBubble);
@@ -609,6 +614,11 @@ export class Game {
     
     // Update character controller with new stage's walkable area
     this.characterController.setWalkableArea(result.stage.walkableArea);
+
+    // Update interaction points for the new stage
+    if (result.stage.interactionPoints) {
+      this.characterController.setInteractionPoints(result.stage.interactionPoints);
+    }
 
     console.log(`Stage transition completed to: ${result.stage.name}`);
     console.log(`Character positioned at: (${result.characterPosition.x}, ${result.characterPosition.y})`);

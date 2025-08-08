@@ -11,6 +11,7 @@ export interface Stage {
   objects: InteractiveObjectData[];
   characterStartPosition: Position;
   keyPosition?: Position; // Optional key sprite position for this stage
+  interactionPoints?: Map<string, Position>; // objectId -> interaction position
 }
 
 export interface StageTransition {
