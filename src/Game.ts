@@ -9,16 +9,15 @@ import { ActionBar } from "./ActionBar";
 import { CommandPanel, ActionType } from "./CommandPanel";
 import { InteractiveObject } from "./InteractiveObject";
 import { InventorySystem, InventoryItem } from "./InventorySystem";
-import { KeySprite } from "./KeySprite";
 import { ActionResponseSystem } from "./ActionResponseSystem";
 import { SpeechBubble } from "./SpeechBubble";
+import { StageManager } from "./StageManager";
 
 export class Game {
   private app!: Application;
   private gameContainer!: HTMLElement;
   private scale: number = 1;
   private assetManager: AssetManager;
-  private backgroundSprite?: Sprite;
   private spriteGenerator: SpriteGenerator;
   private characterSprites?: CharacterSprites;
   private characterSprite?: Sprite;
@@ -28,9 +27,9 @@ export class Game {
   private actionBar?: ActionBar;
   private commandPanel?: CommandPanel;
   private inventorySystem?: InventorySystem;
-  private keySprite?: KeySprite;
   private actionResponseSystem: ActionResponseSystem;
   private speechBubble?: SpeechBubble;
+  private stageManager: StageManager;
 
   // UI layout configuration
   private gameAreaWidth: number = 1024; // Original game area (unchanged)
@@ -46,16 +45,6 @@ export class Game {
 
   // Inventory item selection system
   private selectedInventoryItem?: InventoryItem;
-
-  // Walkable area polygon (street area) - adjusted for background moved down 40px
-  private readonly walkableArea: Position[] = [
-    { x: 0, y: 803 }, // 763 + 40
-    { x: 3, y: 692 }, // 652 + 40
-    { x: 387, y: 610 }, // 570 + 40
-    { x: 568, y: 610 }, // 570 + 40
-    { x: 976, y: 707 }, // 667 + 40
-    { x: 1024, y: 803 }, // 763 + 40
-  ];
 
   private readonly config: GameConfig = {
     gameWidth: 1230, // Original 1024 + 196px UI column + 10px right padding
@@ -75,6 +64,11 @@ export class Game {
     this.spriteGenerator = new SpriteGenerator();
     this.objectManager = new ObjectManager();
     this.actionResponseSystem = new ActionResponseSystem();
+    this.stageManager = new StageManager(
+      this.assetManager,
+      this.objectManager,
+      this.gameAreaWidth,
+    );
   }
 
   async initialize(): Promise<void> {
@@ -82,8 +76,7 @@ export class Game {
     this.setupCanvas();
     this.setupInput();
     await this.loadAssets();
-    this.setupBackground();
-    this.setupObjects();
+    await this.initializeStages();
     this.setupCharacter();
     this.setupUI();
     this.addTestInventoryItems(); // Add test items after UI is set up
@@ -162,39 +155,23 @@ export class Game {
     }
   }
 
-  private setupBackground(): void {
-    const backgroundTexture = this.assetManager.getAsset("cyberpunk");
-    if (backgroundTexture) {
-      this.backgroundSprite = new Sprite(backgroundTexture);
+  private async initializeStages(): Promise<void> {
+    // Initialize the stage system with predefined stages
+    this.stageManager.initializeStages();
 
-      // Scale background to fill original game area (1024x768)
-      this.backgroundSprite.width = this.gameAreaWidth;
-      this.backgroundSprite.height = 768; // Keep original background height
-
-      // Position below action bar (40px down from top)
-      this.backgroundSprite.x = 0;
-      this.backgroundSprite.y = 40;
-
-      this.app.stage.addChild(this.backgroundSprite);
-    } else {
-      console.warn("Background texture not found");
+    // Load the initial stage (cyberpunk street)
+    const success = await this.stageManager.loadStage(
+      "cyberpunk-street",
+      this.app.stage,
+    );
+    if (!success) {
+      throw new Error("Failed to load initial stage");
     }
-  }
-
-  private setupObjects(): void {
-    // Initialize interactive objects
-    this.objectManager.initializeGameObjects();
 
     // Add highlight container to stage (above background, below character)
     this.app.stage.addChild(this.objectManager.getHighlightContainer());
 
-    // Create and position key sprite - adjusted for background move
-    this.keySprite = new KeySprite();
-    this.keySprite.x = 500;
-    this.keySprite.y = 640; // 600 + 40px offset
-    this.app.stage.addChild(this.keySprite);
-
-    console.log("Interactive objects and key sprite initialized");
+    console.log("Stage system initialized and initial stage loaded");
   }
 
   private setupCharacter(): void {
@@ -210,11 +187,17 @@ export class Game {
     // Set anchor to bottom center (0.5, 1.0) so sprite aligns naturally to ground
     this.characterSprite.anchor.set(0.5, 1.0);
 
-    // Position character within the walkable area (street) - adjusted for background move
+    // Get current stage for character positioning
+    const currentStage = this.stageManager.getCurrentStage();
+    if (!currentStage) {
+      throw new Error("No current stage available for character setup");
+    }
+
+    // Position character at stage start position
     // Scale up the 16x24 sprite for visibility (scale by 3)
     this.characterSprite.scale.set(3, 3);
-    this.characterSprite.x = 400; // Center of street area
-    this.characterSprite.y = 690; // 650 + 40px offset for background move
+    this.characterSprite.x = currentStage.characterStartPosition.x;
+    this.characterSprite.y = currentStage.characterStartPosition.y;
 
     this.app.stage.addChild(this.characterSprite);
 
@@ -224,8 +207,8 @@ export class Game {
       this.characterSprites,
     );
 
-    // Set up walkable area using the dedicated walkable area polygon
-    this.characterController.setWalkableArea(this.walkableArea);
+    // Set up walkable area from current stage
+    this.characterController.setWalkableArea(currentStage.walkableArea);
 
     // Create speech bubble (positioned above character)
     this.speechBubble = new SpeechBubble();
@@ -533,7 +516,11 @@ export class Game {
 
   private handleGetAction(object: InteractiveObject): void {
     // Handle pickup action for specific objects
-    if (object.id === "golden-key" && this.keySprite && this.inventorySystem) {
+    if (
+      object.id === "golden-key" &&
+      this.stageManager.getKeySprite() &&
+      this.inventorySystem
+    ) {
       // Create inventory item for the key
       const keyItem: InventoryItem = {
         id: "golden-key",
@@ -548,10 +535,8 @@ export class Game {
       const success = this.inventorySystem.addItem(keyItem);
 
       if (success) {
-        // Remove visual sprite from scene
-        this.app.stage.removeChild(this.keySprite);
-        this.keySprite.destroy();
-        this.keySprite = undefined;
+        // Remove visual sprite from scene using stage manager
+        this.stageManager.removeKeySprite(this.app.stage);
 
         // Remove interactive object from object manager
         this.objectManager.removeObject("golden-key");
@@ -1052,6 +1037,10 @@ export class Game {
 
   getInventorySystem(): InventorySystem | undefined {
     return this.inventorySystem;
+  }
+
+  getStageManager(): StageManager {
+    return this.stageManager;
   }
 
   // Test method to add some sample inventory items
