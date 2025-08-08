@@ -37,8 +37,15 @@ export class Game {
 
   // Pending action system
   private pendingAction?: { action: ActionType; object: InteractiveObject };
+  private pendingItemObjectAction?: {
+    item: InventoryItem;
+    object: InteractiveObject;
+  };
   private wasCharacterMoving: boolean = false;
   private isPendingWalkActionColor: boolean = false;
+
+  // Inventory item selection system
+  private selectedInventoryItem?: InventoryItem;
 
   // Walkable area polygon (street area)
   private readonly walkableArea: Position[] = [
@@ -283,6 +290,32 @@ export class Game {
     );
 
     if (clickedObject && this.characterController) {
+      // Check if we have a selected inventory item for "use with" functionality
+      if (this.selectedInventoryItem) {
+        console.log(
+          `Using ${this.selectedInventoryItem.name} with ${clickedObject.name}`,
+        );
+
+        // Move character to object and then use the item with it
+        const success = this.characterController.moveToObject(clickedObject);
+
+        if (success) {
+          // Flash action bar pink when object is clicked
+          if (this.actionBar) {
+            this.actionBar.flashPink();
+          }
+
+          // Store the pending item-object combination action
+          this.setPendingItemObjectAction(
+            this.selectedInventoryItem,
+            clickedObject,
+          );
+        } else {
+          console.log(`Cannot reach object: ${clickedObject.name}`);
+        }
+        return;
+      }
+
       const currentAction = this.gameState.currentAction;
       console.log(
         `Clicked on object: ${clickedObject.name} with action: ${currentAction}`,
@@ -331,6 +364,13 @@ export class Game {
   }
 
   private handleCanvasHover(position: Position): void {
+    // Don't handle canvas hover for UI area (inventory/command panel area)
+    // UI area starts at gameAreaWidth + 10
+    const uiAreaStartX = this.gameAreaWidth + 10;
+    if (position.x >= uiAreaStartX) {
+      return; // Let inventory/command panel handle their own hover events
+    }
+
     // Update object hover states and highlighting
     const hoveredObject = this.objectManager.updateHover(position);
 
@@ -346,9 +386,23 @@ export class Game {
     // Update action bar text based on hovered object
     if (this.actionBar) {
       if (hoveredObject) {
-        this.actionBar.showObjectHover(hoveredObject.name);
+        // If we have a selected inventory item, append the object name to "Use X with"
+        if (this.selectedInventoryItem) {
+          this.actionBar.updateText(
+            `Use ${this.selectedInventoryItem.name.toLowerCase()} with ${hoveredObject.name.toLowerCase()}`,
+          );
+        } else {
+          this.actionBar.showObjectHover(hoveredObject.name);
+        }
       } else {
-        this.actionBar.showDefaultText();
+        // If we have a selected inventory item, show "Use X with" when not hovering anything
+        if (this.selectedInventoryItem) {
+          this.actionBar.updateText(
+            `Use ${this.selectedInventoryItem.name.toLowerCase()} with`,
+          );
+        } else {
+          this.actionBar.showDefaultText();
+        }
       }
     }
   }
@@ -362,15 +416,28 @@ export class Game {
       this.inputManager.setCursor("default");
     }
 
-    // Reset action bar to default text
+    // Reset action bar to default text, but preserve "Use X with" if item is selected
     if (this.actionBar) {
-      this.actionBar.showDefaultText();
+      if (this.selectedInventoryItem) {
+        // Keep showing "Use X with" text (without object name when cursor leaves canvas)
+        this.actionBar.updateText(
+          `Use ${this.selectedInventoryItem.name.toLowerCase()} with`,
+        );
+      } else {
+        this.actionBar.showDefaultText();
+      }
     }
   }
 
   private handleActionChange(action: ActionType): void {
     // Update game state
     this.gameState.currentAction = action;
+
+    // Clear any selected inventory item when action changes
+    if (this.selectedInventoryItem) {
+      this.selectedInventoryItem = undefined;
+      console.log("Cleared selected inventory item due to action change");
+    }
 
     // Update action bar to reflect new action
     if (this.actionBar) {
@@ -431,6 +498,16 @@ export class Game {
     console.log(`Set pending action: ${action} on ${object.name}`);
   }
 
+  private setPendingItemObjectAction(
+    item: InventoryItem,
+    object: InteractiveObject,
+  ): void {
+    this.pendingItemObjectAction = { item, object };
+    console.log(
+      `Set pending item-object action: Use ${item.name} with ${object.name}`,
+    );
+  }
+
   private executePendingAction(): void {
     if (!this.pendingAction) return;
 
@@ -484,26 +561,229 @@ export class Game {
     this.revertToWalkAction();
   }
 
+  private executePendingItemObjectAction(): void {
+    if (!this.pendingItemObjectAction) return;
+
+    const { item, object } = this.pendingItemObjectAction;
+    console.log(
+      `Executing item-object action: Use ${item.name} with ${object.name}`,
+    );
+
+    // Revert action bar color when we arrive at the object
+    if (this.actionBar) {
+      this.actionBar.revertColor();
+    }
+
+    // Handle item-object combinations with speech responses
+    this.handleItemObjectCombination(item, object);
+
+    // Clear the pending action and selected item
+    this.pendingItemObjectAction = undefined;
+    this.selectedInventoryItem = undefined;
+
+    // Revert to walk action after executing the action
+    this.revertToWalkAction();
+  }
+
+  private handleItemObjectCombination(
+    item: InventoryItem,
+    object: InteractiveObject,
+  ): void {
+    // For now, provide generic responses for item-object combinations
+    // In a full game, this would have specific logic for each combination
+
+    let responseText;
+    const combinationKey = `${item.id}-${object.id}`;
+
+    // Handle some specific known combinations
+    switch (combinationKey) {
+      case "keycard-building-entrance":
+        responseText =
+          "I swipe the keycard, but nothing happens. Maybe it's not for this door.";
+        break;
+      case "keycard-cryptic-door":
+        responseText =
+          "The keycard doesn't fit. This door doesn't have a card reader.";
+        break;
+      default:
+        responseText = `Using the ${item.name.toLowerCase()} with the ${object.name.toLowerCase()} doesn't seem to work.`;
+    }
+
+    // Show response in speech bubble
+    if (this.speechBubble && this.characterSprite) {
+      this.speechBubble.showSpeech(responseText);
+      this.speechBubble.positionAboveCharacter(
+        this.characterSprite.x,
+        this.characterSprite.y,
+        this.config.gameHeight,
+      );
+    }
+
+    console.log(`Item-Object combination: ${responseText}`);
+  }
+
   private handleInventoryClick(slotIndex: number, item?: InventoryItem): void {
     if (item) {
       console.log(`Clicked inventory item: ${item.name} in slot ${slotIndex}`);
-      // TODO: Handle item selection/usage
+
+      // Check if we have a selected item for "use with" functionality
+      if (
+        this.selectedInventoryItem &&
+        this.selectedInventoryItem.id !== item.id
+      ) {
+        console.log(
+          `Using ${this.selectedInventoryItem.name} with ${item.name}`,
+        );
+        this.handleItemItemCombination(this.selectedInventoryItem, item);
+        return;
+      }
+
+      // Default action for inventory items is "look" unless another action is selected
+      const currentAction = this.gameState.currentAction;
+      const actionToUse = currentAction === "walk" ? "look" : currentAction;
+
+      // Handle "Use" action specially - select the item for "use with" functionality
+      if (actionToUse === "use") {
+        this.selectInventoryItemForUse(item);
+      } else {
+        this.handleInventoryItemAction(item, actionToUse);
+      }
     } else {
       console.log(`Clicked empty inventory slot ${slotIndex}`);
     }
   }
 
-  private handleInventoryHover(slotIndex: number, item?: InventoryItem): void {
+  private handleItemItemCombination(
+    item1: InventoryItem,
+    item2: InventoryItem,
+  ): void {
+    // Handle item-to-item combinations
+    let responseText;
+    const combinationKey = `${item1.id}-${item2.id}`;
+
+    // Handle specific known item combinations
+    switch (combinationKey) {
+      case "keycard-datapad":
+        responseText =
+          "I try to use the keycard on the data pad, but nothing happens.";
+        break;
+      case "credits-datapad":
+        responseText = "The data pad doesn't have a payment slot for credits.";
+        break;
+      default:
+        responseText = `I can't use the ${item1.name.toLowerCase()} with the ${item2.name.toLowerCase()}.`;
+    }
+
+    // Show response in speech bubble
+    if (this.speechBubble && this.characterSprite) {
+      this.speechBubble.showSpeech(responseText);
+      this.speechBubble.positionAboveCharacter(
+        this.characterSprite.x,
+        this.characterSprite.y,
+        this.config.gameHeight,
+      );
+    }
+
+    // Clear selected item and revert action
+    this.selectedInventoryItem = undefined;
+    this.revertToWalkAction();
+
+    console.log(`Item-Item combination: ${responseText}`);
+  }
+
+  private selectInventoryItemForUse(item: InventoryItem): void {
+    this.selectedInventoryItem = item;
+
+    // Update action bar to show "Use X with"
+    if (this.actionBar) {
+      this.actionBar.updateText(`Use ${item.name.toLowerCase()} with`);
+    }
+
+    console.log(`Selected ${item.name} for use - waiting for target`);
+  }
+
+  private handleInventoryItemAction(
+    item: InventoryItem,
+    action: ActionType,
+  ): void {
+    // Get the appropriate response for this inventory item-action combination
+    const response = this.actionResponseSystem.getResponse(item.id, action);
+
+    if (response) {
+      // Show response text in speech bubble above character
+      if (this.speechBubble && this.characterSprite) {
+        this.speechBubble.showSpeech(response.text);
+        this.speechBubble.positionAboveCharacter(
+          this.characterSprite.x,
+          this.characterSprite.y,
+          this.config.gameHeight,
+        );
+      }
+
+      console.log(`${action.toUpperCase()} ${item.name}: ${response.text}`);
+    } else {
+      // Fallback for unknown item-action combinations
+      const fallbackText = `I can't ${action} the ${item.name}.`;
+      if (this.speechBubble && this.characterSprite) {
+        this.speechBubble.showSpeech(fallbackText);
+        this.speechBubble.positionAboveCharacter(
+          this.characterSprite.x,
+          this.characterSprite.y,
+          this.config.gameHeight,
+        );
+      }
+      console.log(`Unknown action: ${action} on ${item.name}`);
+    }
+  }
+
+  private handleInventoryHover(_slotIndex: number, item?: InventoryItem): void {
     if (item && this.actionBar) {
-      // Update action bar to show item name when hovering
-      this.actionBar.updateText(item.name);
+      // If we have a selected inventory item, don't show normal hover text
+      if (this.selectedInventoryItem) {
+        return;
+      }
+
+      // Show the appropriate action with item name based on current action
+      const currentAction = this.gameState.currentAction;
+      const actionToUse = currentAction === "walk" ? "look" : currentAction;
+
+      let actionText;
+      switch (actionToUse.toLowerCase()) {
+        case "look":
+          actionText = `Look at ${item.name.toLowerCase()}`;
+          break;
+        case "use":
+          actionText = `Use ${item.name.toLowerCase()}`;
+          break;
+        case "get":
+          actionText = `Get ${item.name.toLowerCase()}`;
+          break;
+        case "talk":
+          actionText = `Talk to ${item.name.toLowerCase()}`;
+          break;
+        case "open":
+          actionText = `Open ${item.name.toLowerCase()}`;
+          break;
+        default:
+          actionText = `${actionToUse} ${item.name.toLowerCase()}`;
+      }
+
+      this.actionBar.updateText(actionText);
     }
   }
 
   private handleInventoryHoverExit(): void {
     if (this.actionBar) {
-      // Return action bar to showing current action when not hovering inventory
-      this.actionBar.showDefaultText();
+      // Only revert to default text if we don't have a selected inventory item
+      if (this.selectedInventoryItem) {
+        // Keep showing "Use X with" text when leaving inventory area
+        this.actionBar.updateText(
+          `Use ${this.selectedInventoryItem.name.toLowerCase()} with`,
+        );
+      } else {
+        // Return action bar to showing current action (not default text which shows object names)
+        this.actionBar.setAction(this.gameState.currentAction);
+      }
     }
   }
 
@@ -540,6 +820,15 @@ export class Game {
     // Check if movement just completed and we have a pending action
     if (this.wasCharacterMoving && !isCurrentlyMoving && this.pendingAction) {
       this.executePendingAction();
+    }
+
+    // Check if movement just completed and we have a pending item-object action
+    if (
+      this.wasCharacterMoving &&
+      !isCurrentlyMoving &&
+      this.pendingItemObjectAction
+    ) {
+      this.executePendingItemObjectAction();
     }
 
     // Check if walk action just completed and we need to revert action bar color

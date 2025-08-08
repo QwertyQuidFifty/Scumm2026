@@ -53,7 +53,7 @@ export class InventorySystem {
   private setupTextStyle(): void {
     this.textStyle = new TextStyle({
       fontFamily: "Courier New",
-      fontSize: 38, // Increased font size for larger slots
+      fontSize: 44, // Increased font size for larger slots
       fill: 0xffffff, // white
       align: "center",
       fontWeight: "bold",
@@ -167,12 +167,7 @@ export class InventorySystem {
     bg.clear();
 
     if (slot.item) {
-      // Draw item as neutral colored square (same as empty slot normal color)
-      bg.rect(0, 0, this.slotWidth, this.slotHeight).fill(
-        this.slotColors.empty.normal,
-      );
-
-      // Add border
+      // Draw item with no background color - only border
       bg.rect(0, 0, this.slotWidth, this.slotHeight).stroke({
         color: this.slotColors.empty.border,
         width: 2,

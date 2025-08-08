@@ -235,7 +235,75 @@ export class ActionResponseSystem {
       ]),
     );
 
+    // Add inventory item responses
+    this.initializeInventoryItemResponses();
+
     console.log(`Initialized responses for ${this.responses.size} objects`);
+  }
+
+  private initializeInventoryItemResponses(): void {
+    // Key Card responses
+    this.responses.set(
+      "keycard",
+      new Map([
+        [
+          "look",
+          {
+            text: "It's a plastic access card with a magnetic strip.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "use",
+          {
+            text: "I need to use this on something that accepts keycards.",
+            shouldMoveCharacter: false,
+          },
+        ],
+      ]),
+    );
+
+    // Credits responses
+    this.responses.set(
+      "credits",
+      new Map([
+        [
+          "look",
+          {
+            text: "Digital currency chips worth 100 credits.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "use",
+          {
+            text: "I need to find something to spend these credits on.",
+            shouldMoveCharacter: false,
+          },
+        ],
+      ]),
+    );
+
+    // Data Pad responses
+    this.responses.set(
+      "datapad",
+      new Map([
+        [
+          "look",
+          {
+            text: "It's a small handheld device containing encrypted files.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "use",
+          {
+            text: "The files are encrypted. I need to find a way to decrypt them.",
+            shouldMoveCharacter: false,
+          },
+        ],
+      ]),
+    );
   }
 
   getResponse(
