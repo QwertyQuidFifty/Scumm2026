@@ -23,9 +23,17 @@ export class CharacterController {
   private sprites: CharacterSprites;
   private movementState: MovementState;
   private animationState: AnimationState;
-  private moveSpeed: number = 120; // pixels per second (doubled from original 60)
+  private moveSpeed: number = 180; // pixels per second (increased 50% from 120 for better feel)
   private walkableArea?: Position[]; // The street polygon
-  private interactionPoints: Map<string, Position> = new Map(); // Set from current stage
+  // Interaction points for each object (within walkable area) - adjusted for background offset
+  private interactionPoints: Map<string, Position> = new Map([
+    ["hotel-sign", { x: 202, y: 657 }], // Near hotel sign, on street (617 + 40)
+    ["bar-sign", { x: 689, y: 656 }], // Near bar sign, on street (616 + 40)
+    ["building-entrance", { x: 108, y: 686 }], // Near building entrance, on street (646 + 40)
+    ["cryptic-door", { x: 896, y: 713 }], // Right side of the street below bar entrance (673 + 40)
+    ["city-in-distance", { x: 470, y: 616 }], // City in distance, on street (576 + 40)
+  ]);
+  private yMovementFactor: number = 0.5; // Factor for Y-axis movement damping (0.5 = half Y movement)
 
   constructor(sprite: Sprite, sprites: CharacterSprites) {
     this.sprite = sprite;
@@ -90,7 +98,7 @@ export class CharacterController {
   }
 
   moveTo(targetX: number, targetY: number): boolean {
-    // Check if target position is walkable
+    // Check if target position is walkable (original coordinates)
     if (!this.isPositionWalkable(targetX, targetY)) {
       console.log(
         `Cannot move to (${targetX}, ${targetY}) - position is not walkable`,
@@ -98,15 +106,23 @@ export class CharacterController {
       return false;
     }
 
-    // Calculate movement parameters
+    // Calculate movement parameters with different axis speeds
     const startX = this.sprite.x;
     const startY = this.sprite.y;
-    const distance = Math.sqrt(
-      (targetX - startX) ** 2 + (targetY - startY) ** 2,
-    );
-    const duration = distance / this.moveSpeed; // duration in seconds
+    const deltaX = targetX - startX;
+    const deltaY = targetY - startY;
+    
+    // Calculate time needed for each axis at their respective speeds
+    const xSpeed = this.moveSpeed; // Normal speed for X
+    const ySpeed = this.moveSpeed * this.yMovementFactor; // Reduced speed for Y
+    
+    const xTime = Math.abs(deltaX) / xSpeed;
+    const yTime = Math.abs(deltaY) / ySpeed;
+    
+    // Use the longer time so both axes complete simultaneously
+    const duration = Math.max(xTime, yTime);
 
-    // Update movement state
+    // Update movement state with original target coordinates
     this.movementState = {
       isMoving: true,
       startPosition: { x: startX, y: startY },
@@ -177,7 +193,7 @@ export class CharacterController {
     const elapsed = currentTime - this.movementState.startTime;
     const progress = Math.min(elapsed / this.movementState.duration, 1.0);
 
-    // Linear interpolation
+    // Simple linear interpolation to the scaled target
     const x =
       this.movementState.startPosition.x +
       (this.movementState.targetPosition.x -
@@ -245,5 +261,9 @@ export class CharacterController {
 
   setInteractionPoint(objectId: string, position: Position): void {
     this.interactionPoints.set(objectId, { ...position });
+  }
+
+  setYMovementFactor(factor: number): void {
+    this.yMovementFactor = Math.max(0.1, Math.min(1.0, factor)); // Clamp between 0.1 and 1.0
   }
 }

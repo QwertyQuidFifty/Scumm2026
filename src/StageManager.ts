@@ -159,6 +159,9 @@ export class StageManager {
         minScale: 50 / 72, // Scale factor for 100px height at bar door (100 / sprite height 72)
         maxScale: 200 / 72, // Scale factor for 250px height at cryptic door (250 / sprite height 72)
       },
+      perspectiveMovement: {
+        yMovementFactor: 0.2, // Reduce Y-axis movement by 50% for isometric feel
+      },
     };
 
     this.addStage(cyberpunkStage);
@@ -204,6 +207,9 @@ export class StageManager {
         maxY: 772, // At front of room  
         minScale: 260 / 72, // Fixed scale for 140px height (140 / sprite height 72)
         maxScale: 260 / 72, // Same scale throughout - no variation in small room
+      },
+      perspectiveMovement: {
+        yMovementFactor: 1.0, // Normal movement for indoor stage
       },
     };
 

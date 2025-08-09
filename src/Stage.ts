@@ -8,6 +8,10 @@ export interface PerspectiveScale {
   maxScale: number; // Scale factor at maxY (e.g., 1.5 = 150% size)
 }
 
+export interface PerspectiveMovement {
+  yMovementFactor: number; // Factor to reduce Y-axis movement (1.0 = normal, 0.5 = half speed, etc.)
+}
+
 export interface Stage {
   id: string;
   name: string;
@@ -20,6 +24,7 @@ export interface Stage {
   keyPosition?: Position; // Optional key sprite position for this stage
   interactionPoints?: Map<string, Position>; // objectId -> interaction position
   perspectiveScale?: PerspectiveScale; // Optional perspective scaling configuration
+  perspectiveMovement?: PerspectiveMovement; // Optional perspective movement configuration
 }
 
 export interface StageTransition {

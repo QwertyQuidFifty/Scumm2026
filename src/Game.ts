@@ -222,6 +222,11 @@ export class Game {
     this.perspectiveScaler.setPerspectiveConfig(currentStage.perspectiveScale);
     this.perspectiveScaler.setBaseScale(1); // Base scale (sprite is already pre-scaled)
 
+    // Set up Y-axis movement factor for current stage
+    if (currentStage.perspectiveMovement) {
+      this.characterController.setYMovementFactor(currentStage.perspectiveMovement.yMovementFactor);
+    }
+
     // Create speech bubble (positioned above character)
     this.speechBubble = new SpeechBubble();
     this.app.stage.addChild(this.speechBubble);
@@ -628,6 +633,11 @@ export class Game {
 
     // Update perspective scaling for the new stage
     this.perspectiveScaler.setPerspectiveConfig(result.stage.perspectiveScale);
+
+    // Update Y-axis movement factor for the new stage
+    if (result.stage.perspectiveMovement) {
+      this.characterController.setYMovementFactor(result.stage.perspectiveMovement.yMovementFactor);
+    }
 
     console.log(`Stage transition completed to: ${result.stage.name}`);
     console.log(`Character positioned at: (${result.characterPosition.x}, ${result.characterPosition.y})`);

@@ -34,25 +34,25 @@ export class SpriteGenerator {
         "0000000000000000", // Row 1
         "0000000000000000", // Row 2
         "0000077777700000", // Row 3 - hair top
-        "0000767777670000", // Row 4 - hair with outline
-        "0000788888870000", // Row 5 - face top
+        "0000777777770000", // Row 4 - hair with outline
+        "0000786886870000", // Row 5 - face top
         "0000788888870000", // Row 6 - face
-        "0000788888870000", // Row 7 - face
-        "0000766666670000", // Row 8 - face bottom
-        "0000444444440000", // Row 9 - shirt top
+        "0000788338870000", // Row 7 - face
+        "0000706666070000", // Row 8 - face bottom
+        "0000044444400000", // Row 9 - shirt top
         "0000444444440000", // Row 10 - shirt
-        "0000444444440000", // Row 11 - shirt
-        "0000454444540000", // Row 12 - shirt with belt
-        "0000555555550000", // Row 13 - belt
-        "0000444444440000", // Row 14 - pants top
-        "0000444444440000", // Row 15 - pants
+        "0004444444444000", // Row 11 - shirt
+        "0005454444545000", // Row 12 - shirt with belt
+        "0003534444353000", // Row 13 - belt
+        "0003335555333000", // Row 14 - pants top
+        "0000334444330000", // Row 15 - pants
         "0000444444440000", // Row 16 - pants
-        "0000444444440000", // Row 17 - pants
-        "0000444444440000", // Row 18 - pants
-        "0000444444440000", // Row 19 - pants bottom
+        "0000044444400000", // Row 17 - pants
+        "0000044444400000", // Row 18 - pants
+        "0000044334400000", // Row 19 - pants bottom
         "0000033333300000", // Row 20 - shoes top
         "0000333333330000", // Row 21 - shoes
-        "0000333333330000", // Row 22 - shoes bottom
+        "0000333003330000", // Row 22 - shoes bottom
         "0000000000000000", // Row 23
         "0000000000000000", // Row 24
       ],
@@ -63,18 +63,18 @@ export class SpriteGenerator {
         "0000000000000000", // Row 1
         "0000000000000000", // Row 2
         "0000077777700000", // Row 3 - hair top
-        "0000767777670000", // Row 4 - hair with outline
-        "0000788888870000", // Row 5 - face top
+        "0000777777770000", // Row 4 - hair with outline
+        "0000786886870000", // Row 5 - face top
         "0000788888870000", // Row 6 - face
-        "0000788888870000", // Row 7 - face
-        "0000766666670000", // Row 8 - face bottom
-        "0000444444440000", // Row 9 - shirt top
+        "0000788338870000", // Row 7 - face
+        "0000706666070000", // Row 8 - face bottom
+        "0000044444400000", // Row 9 - shirt top
         "0000444444440000", // Row 10 - shirt
-        "0000444444440000", // Row 11 - shirt
-        "0000454444540000", // Row 12 - shirt with belt
-        "0000555555550000", // Row 13 - belt
-        "0000044444440000", // Row 14 - pants (left leg forward)
-        "0000044444400000", // Row 15 - pants
+        "0004444444444000", // Row 11 - shirt
+        "0005454444545000", // Row 12 - shirt with belt
+        "0003534444353000", // Row 13 - belt
+        "0003335555333000", // Row 14 - pants top
+        "0000334444330000", // Row 15 - pants
         "0000044444000000", // Row 16 - pants
         "0000044440000000", // Row 17 - pants
         "0000044400000000", // Row 18 - pants
@@ -92,18 +92,18 @@ export class SpriteGenerator {
         "0000000000000000", // Row 1
         "0000000000000000", // Row 2
         "0000077777700000", // Row 3 - hair top
-        "0000767777670000", // Row 4 - hair with outline
-        "0000788888870000", // Row 5 - face top
+        "0000777777770000", // Row 4 - hair with outline
+        "0000786886870000", // Row 5 - face top
         "0000788888870000", // Row 6 - face
-        "0000788888870000", // Row 7 - face
-        "0000766666670000", // Row 8 - face bottom
-        "0000444444440000", // Row 9 - shirt top
+        "0000788338870000", // Row 7 - face
+        "0000706666070000", // Row 8 - face bottom
+        "0000044444400000", // Row 9 - shirt top
         "0000444444440000", // Row 10 - shirt
-        "0000444444440000", // Row 11 - shirt
-        "0000454444540000", // Row 12 - shirt with belt
-        "0000555555550000", // Row 13 - belt
-        "0000444444400000", // Row 14 - pants (right leg forward)
-        "0000444444000000", // Row 15 - pants
+        "0004444444444000", // Row 11 - shirt
+        "0005454444545000", // Row 12 - shirt with belt
+        "0003534444353000", // Row 13 - belt
+        "0003335555333000", // Row 14 - pants top
+        "0000334444330000", // Row 15 - pants
         "0000444440000000", // Row 16 - pants
         "0000444400000000", // Row 17 - pants
         "0000444000000000", // Row 18 - pants
