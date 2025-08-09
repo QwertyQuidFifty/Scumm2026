@@ -85,6 +85,13 @@ export class NPCManager {
     // Add to container
     this.npcContainer.addChild(npc.getSprite());
     
+    // Set up position change callback for depth manager integration
+    npc.setPositionChangeCallback((npcId: string, position: Position) => {
+      if (this.depthManager) {
+        this.depthManager.updateSpritePosition(`npc-${npcId}`, position.y);
+      }
+    });
+    
     // Store in map
     this.npcs.set(npcData.id, npc);
     
@@ -148,10 +155,9 @@ export class NPCManager {
 
   // Update NPC positions or animations if needed
   update(currentTime: number): void {
-    // For now, NPCs are static
-    // Future: Add walking animations, AI movement, etc.
+    // Update all NPCs - movement and animations
     for (const npc of this.npcs.values()) {
-      // Could add animation updates here
+      npc.update(currentTime);
     }
   }
 
@@ -210,5 +216,64 @@ export class NPCManager {
     for (const npc of this.npcs.values()) {
       npc.stopTalking();
     }
+  }
+
+  // Set walkable area for all NPCs
+  setWalkableArea(walkableArea: Position[]): void {
+    for (const npc of this.npcs.values()) {
+      npc.setWalkableArea(walkableArea);
+    }
+  }
+
+  // Move a specific NPC to a target position
+  moveNPCTo(npcId: string, targetX: number, targetY: number): boolean {
+    const npc = this.npcs.get(npcId);
+    if (!npc) {
+      console.warn(`NPC with id ${npcId} not found for movement`);
+      return false;
+    }
+
+    return npc.moveTo(targetX, targetY);
+  }
+
+  // Check if any NPC is currently moving
+  hasMovingNPCs(): boolean {
+    for (const npc of this.npcs.values()) {
+      if (npc.isMoving()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Get all moving NPCs
+  getMovingNPCs(): NPC[] {
+    return Array.from(this.npcs.values()).filter(npc => npc.isMoving());
+  }
+
+  // Stop all NPC movement
+  stopAllMovement(): void {
+    for (const npc of this.npcs.values()) {
+      // NPCs will naturally stop at their current position on next update
+      // We could add a forceStop method to NPC if needed
+    }
+  }
+
+  // Move random NPC to a random valid position (for testing/demo purposes)
+  moveRandomNPC(): boolean {
+    const npcArray = Array.from(this.npcs.values());
+    if (npcArray.length === 0) return false;
+
+    const randomNPC = npcArray[Math.floor(Math.random() * npcArray.length)];
+    
+    // Generate a random position within reasonable bounds
+    // This is a simple implementation - could be improved with proper walkable area sampling
+    const currentPos = randomNPC.getPosition();
+    const randomOffset = 100; // Move within 100 pixels
+    const targetX = currentPos.x + (Math.random() - 0.5) * randomOffset * 2;
+    const targetY = currentPos.y + (Math.random() - 0.5) * randomOffset * 2;
+
+    console.log(`Moving random NPC ${randomNPC.getName()} to random position (${targetX.toFixed(1)}, ${targetY.toFixed(1)})`);
+    return randomNPC.moveTo(targetX, targetY);
   }
 }

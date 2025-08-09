@@ -481,6 +481,40 @@ export class Game {
   private handleKeyPress(key: string): void {
     console.log(`Key pressed: ${key}`);
 
+    // NPC movement testing commands
+    if (key === "n") {
+      // Move random NPC to random position
+      const success = this.npcManager.moveRandomNPC();
+      if (success) {
+        console.log("Random NPC movement started");
+      } else {
+        console.log("No NPCs available for movement");
+      }
+      return;
+    }
+
+    if (key === "m") {
+      // Move Maya (street vendor) to a specific position
+      const success = this.npcManager.moveNPCTo("street-vendor", 500, 650);
+      if (success) {
+        console.log("Maya is moving to (500, 650)");
+      } else {
+        console.log("Could not move Maya");
+      }
+      return;
+    }
+
+    if (key === "b") {
+      // Move Jake the Bartender
+      const success = this.npcManager.moveNPCTo("bartender", 600, 680);
+      if (success) {
+        console.log("Jake is moving to (600, 680)");
+      } else {
+        console.log("Could not move Jake");
+      }
+      return;
+    }
+
     // Map keyboard shortcuts to actions
     const keyToActionMap: { [key: string]: ActionType } = {
       w: "walk",

@@ -533,6 +533,9 @@ export class StageManager {
 
     console.log(`Loaded ${loadedCount}/${stage.npcs.length} NPCs for stage: ${stage.name}`);
 
+    // Set walkable area for all NPCs
+    this.npcManager.setWalkableArea(stage.walkableArea);
+
     // Force depth sort after loading all NPCs
     if (this.depthManager) {
       this.depthManager.forceSortSprites();
