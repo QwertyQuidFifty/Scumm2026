@@ -210,4 +210,73 @@ export class SpriteGenerator {
   getSpriteFrameData(): SpriteFrame[] {
     return [...this.characterFrames];
   }
+
+  // Generate NPC sprites with different color palettes for variety
+  generateNPCSpritesWithRenderer(renderer: Renderer, npcType: string = "basic"): CharacterSprites {
+    const originalPalette = { ...this.colorPalette };
+    
+    // Set NPC-specific color palette
+    this.setNPCColorPalette(npcType);
+    
+    // Generate sprites with NPC palette
+    const sprites: Partial<CharacterSprites> = {};
+    for (const frame of this.characterFrames) {
+      const texture = this.generateTextureWithRenderer(frame.data, renderer);
+      sprites[frame.name as keyof CharacterSprites] = texture;
+    }
+    
+    // Restore original palette
+    this.colorPalette = originalPalette;
+    
+    return sprites as CharacterSprites;
+  }
+
+  private setNPCColorPalette(npcType: string): void {
+    switch (npcType) {
+      case "bartender":
+        // Dark clothing, different hair
+        this.colorPalette = {
+          "0": 0x000000, // transparent
+          "3": 0x1a1a1a, // darker shoes
+          "4": 0x2d2d2d, // dark grey pants
+          "5": 0x4a4a4a, // belt/details
+          "6": 0x654321, // brown hair outline
+          "7": 0x8B4513, // dark brown hair
+          "8": 0xfdbcb4, // slightly different skin tone
+        };
+        break;
+      case "customer":
+        // Blue clothing, blonde hair
+        this.colorPalette = {
+          "0": 0x000000, // transparent
+          "3": 0x2a2a2a, // shoes
+          "4": 0x1e3a8a, // blue pants
+          "5": 0x3b82f6, // blue belt/details
+          "6": 0x92400e, // hair outline
+          "7": 0xfbbf24, // blonde hair
+          "8": 0xfed7aa, // different skin tone
+        };
+        break;
+      case "mechanic":
+        // Green overalls, red hair
+        this.colorPalette = {
+          "0": 0x000000, // transparent
+          "3": 0x4a4a4a, // work boots
+          "4": 0x16a34a, // green overalls
+          "5": 0x22c55e, // green details
+          "6": 0x7f1d1d, // red hair outline
+          "7": 0xdc2626, // red hair
+          "8": 0xf3e8ff, // pale skin
+        };
+        break;
+      default:
+        // Keep original palette for "basic" NPCs
+        break;
+    }
+  }
+
+  // Get available NPC types
+  getAvailableNPCTypes(): string[] {
+    return ["basic", "bartender", "customer", "mechanic"];
+  }
 }

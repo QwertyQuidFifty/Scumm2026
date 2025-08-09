@@ -1,5 +1,6 @@
 import { Position } from "./types";
 import { InteractiveObjectData } from "./InteractiveObject";
+import { NPCData } from "./NPC";
 
 export interface PerspectiveScale {
   minY: number; // Y coordinate for minimum scale (background/far)
@@ -20,6 +21,7 @@ export interface Stage {
   backgroundHeight: number;
   walkableArea: Position[];
   objects: InteractiveObjectData[];
+  npcs?: NPCData[]; // Optional NPCs for this stage
   characterStartPosition: Position;
   keyPosition?: Position; // Optional key sprite position for this stage
   interactionPoints?: Map<string, Position>; // objectId -> interaction position

@@ -14,6 +14,8 @@ import { SpeechBubble } from "./SpeechBubble";
 import { StageManager } from "./StageManager";
 import { StageTransition } from "./Stage";
 import { PerspectiveScaler } from "./PerspectiveScaler";
+import { NPCManager } from "./NPCManager";
+import { NPC } from "./NPC";
 
 export class Game {
   private app!: Application;
@@ -33,6 +35,7 @@ export class Game {
   private speechBubble?: SpeechBubble;
   private stageManager: StageManager;
   private perspectiveScaler: PerspectiveScaler;
+  private npcManager: NPCManager;
 
   // UI layout configuration
   private gameAreaWidth: number = 1024; // Original game area (unchanged)
@@ -43,6 +46,7 @@ export class Game {
     item: InventoryItem;
     object: InteractiveObject;
   };
+  private pendingNPCAction?: { action: ActionType; npc: NPC };
   private wasCharacterMoving: boolean = false;
   private isPendingWalkActionColor: boolean = false;
 
@@ -67,11 +71,13 @@ export class Game {
     this.spriteGenerator = new SpriteGenerator();
     this.objectManager = new ObjectManager();
     this.actionResponseSystem = new ActionResponseSystem();
+    this.npcManager = new NPCManager();
     this.stageManager = new StageManager(
       this.assetManager,
       this.objectManager,
       this.gameAreaWidth,
     );
+    this.stageManager.setNPCManager(this.npcManager);
     this.perspectiveScaler = new PerspectiveScaler();
   }
 
@@ -80,6 +86,7 @@ export class Game {
     this.setupCanvas();
     this.setupInput();
     await this.loadAssets();
+    this.setupCharacterSprites(); // Set up sprite generation BEFORE stages
     await this.initializeStages();
     this.setupCharacter();
     this.setupUI();
@@ -176,14 +183,33 @@ export class Game {
     this.app.stage.addChild(this.objectManager.getHighlightContainer());
 
     console.log("Stage system initialized and initial stage loaded");
+    console.log(`Stage children after loading: ${this.app.stage.children.length}`);
+    this.app.stage.children.forEach((child, index) => {
+      console.log(`  ${index}: ${child.constructor.name} (visible: ${child.visible}, alpha: ${child.alpha})`);
+    });
   }
 
-  private setupCharacter(): void {
+  private setupCharacterSprites(): void {
     // Generate character sprites using the renderer
     this.characterSprites =
       this.spriteGenerator.generateCharacterSpritesWithRenderer(
         this.app.renderer,
       );
+    
+    // Set up NPC sprite generation system
+    this.npcManager.setSpriteGenerator(this.spriteGenerator, this.app.renderer);
+    
+    // Generate and set basic NPC sprites as fallback
+    const npcSprites = this.spriteGenerator.generateNPCSpritesWithRenderer(
+      this.app.renderer,
+      "basic"
+    );
+    this.npcManager.setNPCSprites(npcSprites);
+    
+    console.log("Character and NPC sprites initialized");
+  }
+
+  private setupCharacter(): void {
 
     // Create character sprite with idle animation initially
     this.characterSprite = new Sprite(this.characterSprites.idle);
@@ -203,6 +229,20 @@ export class Game {
     this.characterSprite.y = currentStage.characterStartPosition.y;
 
     this.app.stage.addChild(this.characterSprite);
+
+    // Add NPC container to stage and ensure it's on top
+    this.app.stage.addChild(this.npcManager.getContainer());
+    
+    // Force NPC container to front (above all other elements)
+    const npcContainer = this.npcManager.getContainer();
+    this.app.stage.setChildIndex(npcContainer, this.app.stage.children.length - 1);
+    
+    // Debug NPC container and stage hierarchy
+    console.log(`NPC Container added to stage: visible=${npcContainer.visible}, alpha=${npcContainer.alpha}, children=${npcContainer.children.length}`);
+    console.log(`Stage children after adding NPC container: ${this.app.stage.children.length}`);
+    this.app.stage.children.forEach((child, index) => {
+      console.log(`  ${index}: ${child.constructor.name} (visible: ${child.visible}, alpha: ${child.alpha})`);
+    });
 
     // Initialize character controller
     this.characterController = new CharacterController(
@@ -293,13 +333,19 @@ export class Game {
       `Canvas clicked at game coordinates: (${position.x}, ${position.y})`,
     );
 
+    // Check if click hit an NPC first (NPCs have priority over objects)
+    const clickedNPC = this.npcManager.getNPCAtPosition(position.x, position.y);
+    
     // Check if click hit an interactive object
     const clickedObject = this.objectManager.getObjectAtPosition(
       position.x,
       position.y,
     );
 
-    if (clickedObject && this.characterController) {
+    if (clickedNPC && this.characterController) {
+      // Handle NPC interaction
+      this.handleNPCClick(clickedNPC);
+    } else if (clickedObject && this.characterController) {
       // Check if we have a selected inventory item for "use with" functionality
       if (this.selectedInventoryItem) {
         console.log(
@@ -378,13 +424,23 @@ export class Game {
       `Canvas right-clicked at game coordinates: (${position.x}, ${position.y})`,
     );
 
+    // Check if right-click hit an NPC first
+    const clickedNPC = this.npcManager.getNPCAtPosition(position.x, position.y);
+    
     // Check if right-click hit an interactive object
     const clickedObject = this.objectManager.getObjectAtPosition(
       position.x,
       position.y,
     );
 
-    if (clickedObject && this.characterController) {
+    if (clickedNPC && this.characterController) {
+      console.log(
+        `Right-clicked on NPC: ${clickedNPC.getName()} with default action: ${clickedNPC.getDefaultAction()}`,
+      );
+
+      // Execute the default action on NPC
+      this.executeDefaultNPCAction(clickedNPC.getDefaultAction(), clickedNPC);
+    } else if (clickedObject && this.characterController) {
       console.log(
         `Right-clicked on object: ${clickedObject.name} with default action: ${clickedObject.defaultAction}`,
       );
@@ -442,12 +498,15 @@ export class Game {
       return; // Let inventory/command panel handle their own hover events
     }
 
-    // Update object hover states and highlighting
-    const hoveredObject = this.objectManager.updateHover(position);
+    // Check for NPCs first (they have priority over objects for hover)
+    const hoveredNPC = this.npcManager.getNPCAtPosition(position.x, position.y);
+    
+    // Update object hover states and highlighting (only if no NPC is hovered)
+    const hoveredObject = hoveredNPC ? undefined : this.objectManager.updateHover(position);
 
     // Update cursor based on what's under the mouse
     if (this.inputManager) {
-      if (hoveredObject) {
+      if (hoveredNPC || hoveredObject) {
         this.inputManager.setCursor("pointer");
       } else {
         this.inputManager.setCursor("crosshair");
@@ -456,11 +515,21 @@ export class Game {
 
     // Update action bar text and highlight default actions
     if (this.actionBar && this.commandPanel) {
-      if (hoveredObject) {
-        // Highlight the default action for this object
-        this.commandPanel.setDefaultActionHighlight(
-          hoveredObject.defaultAction,
-        );
+      if (hoveredNPC) {
+        // Handle NPC hover
+        this.commandPanel.setDefaultActionHighlight(hoveredNPC.getDefaultAction());
+
+        // If we have a selected inventory item, append the NPC name to "Use X with"
+        if (this.selectedInventoryItem) {
+          this.actionBar.updateText(
+            `Use ${this.selectedInventoryItem.name.toLowerCase()} with ${hoveredNPC.getName().toLowerCase()}`,
+          );
+        } else {
+          this.actionBar.showObjectHover(hoveredNPC.getName());
+        }
+      } else if (hoveredObject) {
+        // Handle object hover
+        this.commandPanel.setDefaultActionHighlight(hoveredObject.defaultAction);
 
         // If we have a selected inventory item, append the object name to "Use X with"
         if (this.selectedInventoryItem) {
@@ -471,7 +540,7 @@ export class Game {
           this.actionBar.showObjectHover(hoveredObject.name);
         }
       } else {
-        // Clear default action highlighting when not hovering any object
+        // Clear default action highlighting when not hovering any object or NPC
         this.commandPanel.clearDefaultActionHighlight();
 
         // If we have a selected inventory item, show "Use X with" when not hovering anything
@@ -529,6 +598,85 @@ export class Game {
     }
 
     console.log(`Current action changed to: ${action}`);
+  }
+
+  private handleNPCClick(npc: NPC): void {
+    const currentAction = this.gameState.currentAction;
+    console.log(`Clicked on NPC: ${npc.getName()} with action: ${currentAction}`);
+    
+    // Move character to NPC's interaction point
+    const interactionPoint = npc.getInteractionPoint();
+    
+    const success = this.characterController?.moveTo(interactionPoint.x, interactionPoint.y);
+    
+    if (success) {
+      console.log(`Moving to interact with NPC: ${npc.getName()}`);
+      
+      // Flash action bar pink when NPC is clicked
+      if (this.actionBar) {
+        this.actionBar.flashPink();
+      }
+      
+      // Store the pending NPC interaction to execute when movement completes
+      this.setPendingNPCAction(npc, currentAction);
+    } else {
+      console.log(`Cannot reach NPC: ${npc.getName()}`);
+    }
+  }
+
+  private async executePendingNPCAction(): Promise<void> {
+    if (!this.pendingNPCAction) return;
+
+    const { action, npc } = this.pendingNPCAction;
+    console.log(`Executing pending NPC action: ${action} on ${npc.getName()}`);
+
+    // Revert action bar color when we arrive at the NPC
+    if (this.actionBar) {
+      this.actionBar.revertColor();
+    }
+
+    // Execute the NPC interaction
+    this.handleNPCInteraction(npc, action);
+
+    // Clear the pending NPC action
+    this.pendingNPCAction = undefined;
+
+    // Revert to walk action after executing the action
+    this.revertToWalkAction();
+  }
+
+  private handleNPCInteraction(npc: NPC, action: string): void {
+    // Simple NPC interaction for now
+    let responseText: string;
+    
+    switch (action) {
+      case "talk":
+        responseText = `Hello there! I'm ${npc.getName()}.`;
+        npc.startTalking();
+        // Stop talking after 3 seconds
+        setTimeout(() => {
+          npc.stopTalking();
+        }, 3000);
+        break;
+      case "look":
+        responseText = npc.getDescription();
+        break;
+      default:
+        responseText = `I can't ${action} with ${npc.getName()}.`;
+    }
+    
+    // Show response in speech bubble positioned above the NPC
+    if (this.speechBubble) {
+      const npcPosition = npc.getPosition();
+      this.speechBubble.showSpeech(responseText);
+      this.speechBubble.positionAboveCharacter(
+        npcPosition.x,
+        npcPosition.y,
+        this.config.gameHeight,
+      );
+    }
+    
+    console.log(`NPC Interaction: ${responseText}`);
   }
 
   private handleGetAction(object: InteractiveObject): void {
@@ -673,6 +821,11 @@ export class Game {
     console.log(
       `Set pending item-object action: Use ${item.name} with ${object.name}`,
     );
+  }
+
+  private setPendingNPCAction(npc: NPC, action: ActionType): void {
+    this.pendingNPCAction = { action, npc };
+    console.log(`Set pending NPC action: ${action} on ${npc.getName()}`);
   }
 
   private async executePendingAction(): Promise<void> {
@@ -1005,6 +1158,9 @@ export class Game {
       this.characterController.update(currentTime);
     }
 
+    // Update NPCs
+    this.npcManager.update(currentTime);
+
     // Update character perspective scaling based on Y position
     if (this.characterSprite) {
       this.perspectiveScaler.updateSpriteScale(this.characterSprite);
@@ -1023,6 +1179,15 @@ export class Game {
       this.pendingItemObjectAction
     ) {
       this.executePendingItemObjectAction();
+    }
+
+    // Check if movement just completed and we have a pending NPC action
+    if (
+      this.wasCharacterMoving &&
+      !isCurrentlyMoving &&
+      this.pendingNPCAction
+    ) {
+      this.executePendingNPCAction().catch(console.error);
     }
 
     // Check if walk action just completed and we need to revert action bar color
@@ -1076,6 +1241,44 @@ export class Game {
       this.setPendingAction(action, object);
     } else {
       console.log(`Cannot reach object: ${object.name}`);
+      // Restore previous action if movement failed
+      this.gameState.currentAction = previousAction;
+
+      // Restore previous action bar state if movement failed
+      if (this.actionBar) {
+        this.actionBar.setAction(previousAction);
+      }
+    }
+  }
+
+  private executeDefaultNPCAction(action: ActionType, npc: NPC): void {
+    // Temporarily set the game state to the default action
+    const previousAction = this.gameState.currentAction;
+    this.gameState.currentAction = action;
+
+    // Update action bar to show the default action with NPC name
+    if (this.actionBar) {
+      this.actionBar.showObjectHoverWithAction(npc.getName(), action);
+    }
+
+    // Move character to NPC interaction point and execute the default action
+    const interactionPoint = npc.getInteractionPoint();
+    const success = this.characterController?.moveTo(interactionPoint.x, interactionPoint.y);
+
+    if (success) {
+      console.log(
+        `Moving to execute default action: ${action} on ${npc.getName()}`,
+      );
+
+      // Flash action bar pink when NPC is clicked
+      if (this.actionBar) {
+        this.actionBar.flashPink();
+      }
+
+      // Store the pending action to execute when movement completes
+      this.setPendingNPCAction(npc, action);
+    } else {
+      console.log(`Cannot reach NPC: ${npc.getName()}`);
       // Restore previous action if movement failed
       this.gameState.currentAction = previousAction;
 
@@ -1161,6 +1364,10 @@ export class Game {
 
   getPerspectiveScaler(): PerspectiveScaler {
     return this.perspectiveScaler;
+  }
+
+  getNPCManager(): NPCManager {
+    return this.npcManager;
   }
 
   // Test method to add some sample inventory items

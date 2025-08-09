@@ -3,6 +3,7 @@ import { Stage, StageTransition, PerspectiveScale } from "./Stage";
 import { AssetManager } from "./AssetManager";
 import { ObjectManager } from "./ObjectManager";
 import { KeySprite } from "./KeySprite";
+import { NPCManager } from "./NPCManager";
 
 export class StageManager {
   private stages: Map<string, Stage> = new Map();
@@ -13,6 +14,7 @@ export class StageManager {
   private stageContainer: Container;
   private assetManager: AssetManager;
   private objectManager: ObjectManager;
+  private npcManager?: NPCManager;
   // Track objects that have been permanently removed from stages
   private removedObjects: Map<string, Set<string>> = new Map(); // stageId -> Set<objectId>
   constructor(
@@ -144,6 +146,28 @@ export class StageManager {
           defaultAction: "get",
         },
       ],
+      npcs: [
+        {
+          id: "bartender",
+          name: "Jake the Bartender", 
+          position: { x: 750, y: 630 }, // Near the bar area
+          description: "A gruff bartender with cybernetic implants. He's seen it all.",
+          dialogues: ["What'll it be?", "This city's going to hell.", "Keep your credits ready."],
+          defaultAction: "talk",
+          spriteType: "bartender",
+          interactionPoint: { x: 720, y: 660 } // Stand in front of bar counter
+        },
+        {
+          id: "street-vendor",
+          name: "Maya",
+          position: { x: 300, y: 680 }, // On the street
+          description: "A street vendor selling data chips and tech components.",
+          dialogues: ["Got some rare tech here.", "Don't trust the corpo suits.", "Credits first, questions later."],
+          defaultAction: "talk", 
+          spriteType: "customer",
+          interactionPoint: { x: 280, y: 710 } // Stand in front of vendor on street
+        }
+      ],
       characterStartPosition: { x: 400, y: 690 },
       keyPosition: { x: 500, y: 640 },
       interactionPoints: new Map([
@@ -233,6 +257,10 @@ export class StageManager {
     console.log(`Initialized ${this.stages.size} stages and ${this.transitions.length} transitions`);
   }
 
+  setNPCManager(npcManager: NPCManager): void {
+    this.npcManager = npcManager;
+  }
+
   addStage(stage: Stage): void {
     this.stages.set(stage.id, stage);
   }
@@ -313,6 +341,19 @@ export class StageManager {
       this.loadKeySprite(stage, parentContainer);
     }
 
+    // Load NPCs if defined
+    console.log(`About to load NPCs for stage: ${stage.name}`);
+    if (stage.npcs && this.npcManager) {
+      this.loadNPCs(stage);
+      
+      // Debug NPC container after loading
+      const npcContainer = this.npcManager.getContainer();
+      console.log(`After loading NPCs: container has ${npcContainer.children.length} children`);
+      console.log(`NPC container parent: ${npcContainer.parent?.constructor.name || 'none'}`);
+    } else {
+      console.log(`Skipping NPC loading: stage.npcs=${!!stage.npcs}, this.npcManager=${!!this.npcManager}`);
+    }
+
     this.currentStage = stage;
     console.log(`Stage loaded successfully: ${stage.name}`);
     return true;
@@ -391,6 +432,42 @@ export class StageManager {
     parentContainer.addChild(this.keySprite);
   }
 
+  private loadNPCs(stage: Stage): void {
+    console.log(`loadNPCs called for stage: ${stage.name}`);
+    console.log(`stage.npcs exists: ${!!stage.npcs}`);
+    console.log(`stage.npcs length: ${stage.npcs?.length || 0}`);
+    console.log(`this.npcManager exists: ${!!this.npcManager}`);
+    
+    if (stage.npcs) {
+      console.log('NPCs in stage:', stage.npcs.map(npc => ({ id: npc.id, name: npc.name, spriteType: npc.spriteType })));
+    }
+    
+    if (!stage.npcs || !this.npcManager) {
+      console.log(`No NPCs to load for stage: ${stage.name} (npcs: ${!!stage.npcs}, npcManager: ${!!this.npcManager})`);
+      return;
+    }
+
+    console.log(`Loading ${stage.npcs.length} NPCs for stage: ${stage.name}`);
+
+    // Clear existing NPCs first
+    this.npcManager.clearAllNPCs();
+
+    // Add stage NPCs
+    let loadedCount = 0;
+    for (const npcData of stage.npcs) {
+      console.log(`Attempting to add NPC: ${npcData.name} (${npcData.id}) with sprite type: ${npcData.spriteType}`);
+      const success = this.npcManager.addNPC(npcData);
+      if (success) {
+        loadedCount++;
+        console.log(`Successfully added NPC: ${npcData.name}`);
+      } else {
+        console.error(`Failed to add NPC: ${npcData.name}`);
+      }
+    }
+
+    console.log(`Loaded ${loadedCount}/${stage.npcs.length} NPCs for stage: ${stage.name}`);
+  }
+
   private cleanupCurrentStage(): void {
     // Remove stage container from parent
     if (this.stageContainer.parent) {
@@ -408,6 +485,11 @@ export class StageManager {
       this.keySprite.parent.removeChild(this.keySprite);
       this.keySprite.destroy();
       this.keySprite = undefined;
+    }
+
+    // Clear NPCs
+    if (this.npcManager) {
+      this.npcManager.clearAllNPCs();
     }
 
     // Clear stage container

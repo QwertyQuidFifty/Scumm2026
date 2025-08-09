@@ -1,0 +1,202 @@
+import { Container, Renderer } from "pixi.js";
+import { NPC, NPCData } from "./NPC";
+import { CharacterSprites, SpriteGenerator } from "./SpriteGenerator";
+import { Position } from "./types";
+
+export class NPCManager {
+  private npcs: Map<string, NPC> = new Map();
+  private npcContainer: Container;
+  private spriteCache: Map<string, CharacterSprites> = new Map();
+  private spriteGenerator?: SpriteGenerator;
+  private renderer?: Renderer;
+
+  constructor() {
+    this.npcContainer = new Container();
+  }
+
+  setSpriteGenerator(spriteGenerator: SpriteGenerator, renderer: Renderer): void {
+    this.spriteGenerator = spriteGenerator;
+    this.renderer = renderer;
+  }
+
+  setNPCSprites(sprites: CharacterSprites): void {
+    // Store basic sprites as fallback
+    this.spriteCache.set("basic", sprites);
+  }
+
+  private getSpritesForType(spriteType: string = "basic"): CharacterSprites | undefined {
+    console.log(`Getting sprites for type: ${spriteType}`);
+    
+    // Check if we already have these sprites cached
+    if (this.spriteCache.has(spriteType)) {
+      console.log(`Found cached sprites for type: ${spriteType}`);
+      return this.spriteCache.get(spriteType);
+    }
+
+    console.log(`No cached sprites for ${spriteType}, attempting to generate...`);
+    console.log(`Have spriteGenerator: ${!!this.spriteGenerator}, have renderer: ${!!this.renderer}`);
+
+    // Generate new sprites if we have a sprite generator
+    if (this.spriteGenerator && this.renderer) {
+      console.log(`Generating sprites for NPC type: ${spriteType}`);
+      try {
+        const sprites = this.spriteGenerator.generateNPCSpritesWithRenderer(this.renderer, spriteType);
+        console.log(`Successfully generated sprites for ${spriteType}:`, {
+          idle: !!sprites.idle,
+          walk1: !!sprites.walk1,
+          walk2: !!sprites.walk2
+        });
+        this.spriteCache.set(spriteType, sprites);
+        return sprites;
+      } catch (error) {
+        console.error(`Failed to generate sprites for type ${spriteType}:`, error);
+      }
+    }
+
+    // Fallback to basic sprites
+    console.warn(`No sprites found for type ${spriteType}, using basic`);
+    const basicSprites = this.spriteCache.get("basic");
+    console.log(`Basic sprites available: ${!!basicSprites}`);
+    return basicSprites;
+  }
+
+  addNPC(npcData: NPCData): boolean {
+    if (this.npcs.has(npcData.id)) {
+      console.warn(`NPC with id ${npcData.id} already exists`);
+      return false;
+    }
+
+    // Get sprites for this NPC's type
+    const sprites = this.getSpritesForType(npcData.spriteType);
+    if (!sprites) {
+      console.error(`Could not get sprites for NPC ${npcData.id} with type ${npcData.spriteType}`);
+      return false;
+    }
+
+    // Create new NPC
+    const npc = new NPC(npcData, sprites);
+    
+    // Add to container
+    this.npcContainer.addChild(npc.getSprite());
+    
+    // Store in map
+    this.npcs.set(npcData.id, npc);
+    
+    console.log(`Added NPC: ${npcData.name} at (${npcData.position.x}, ${npcData.position.y}) with sprite type: ${npcData.spriteType}`);
+    console.log(`NPC container now has ${this.npcContainer.children.length} children`);
+    console.log(`NPC sprite visible: ${npc.getSprite().visible}, alpha: ${npc.getSprite().alpha}`);
+    return true;
+  }
+
+  removeNPC(npcId: string): boolean {
+    const npc = this.npcs.get(npcId);
+    if (!npc) {
+      console.warn(`NPC with id ${npcId} not found`);
+      return false;
+    }
+
+    // Remove from container and destroy
+    npc.destroy();
+    
+    // Remove from map
+    this.npcs.delete(npcId);
+    
+    console.log(`Removed NPC: ${npcId}`);
+    return true;
+  }
+
+  getNPC(npcId: string): NPC | undefined {
+    return this.npcs.get(npcId);
+  }
+
+  getAllNPCs(): NPC[] {
+    return Array.from(this.npcs.values());
+  }
+
+  // Get NPC at a specific position (for click detection)
+  getNPCAtPosition(x: number, y: number): NPC | undefined {
+    // Check NPCs in reverse order (top to bottom in rendering)
+    const npcArray = Array.from(this.npcs.values());
+    for (let i = npcArray.length - 1; i >= 0; i--) {
+      const npc = npcArray[i];
+      if (npc.containsPoint(x, y)) {
+        return npc;
+      }
+    }
+    return undefined;
+  }
+
+  // Clear all NPCs (useful for stage transitions)
+  clearAllNPCs(): void {
+    for (const npc of this.npcs.values()) {
+      npc.destroy();
+    }
+    this.npcs.clear();
+    console.log("Cleared all NPCs");
+  }
+
+  // Get the container for adding to stage
+  getContainer(): Container {
+    return this.npcContainer;
+  }
+
+  // Update NPC positions or animations if needed
+  update(currentTime: number): void {
+    // For now, NPCs are static
+    // Future: Add walking animations, AI movement, etc.
+    for (const npc of this.npcs.values()) {
+      // Could add animation updates here
+    }
+  }
+
+  // Get count of NPCs
+  getCount(): number {
+    return this.npcs.size;
+  }
+
+  // Check if an NPC exists
+  hasNPC(npcId: string): boolean {
+    return this.npcs.has(npcId);
+  }
+
+  // Move an NPC to a new position
+  moveNPC(npcId: string, position: Position): boolean {
+    const npc = this.npcs.get(npcId);
+    if (!npc) {
+      console.warn(`NPC with id ${npcId} not found`);
+      return false;
+    }
+
+    npc.setPosition(position);
+    return true;
+  }
+
+  // Make an NPC start talking (visual feedback)
+  startNPCTalking(npcId: string): boolean {
+    const npc = this.npcs.get(npcId);
+    if (!npc) {
+      return false;
+    }
+
+    npc.startTalking();
+    return true;
+  }
+
+  // Make an NPC stop talking
+  stopNPCTalking(npcId: string): boolean {
+    const npc = this.npcs.get(npcId);
+    if (!npc) {
+      return false;
+    }
+
+    npc.stopTalking();
+    return true;
+  }
+
+  // Stop all NPCs from talking
+  stopAllNPCsTalking(): void {
+    for (const npc of this.npcs.values()) {
+      npc.stopTalking();
+    }
+  }
+}
