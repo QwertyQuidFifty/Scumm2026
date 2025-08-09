@@ -287,11 +287,18 @@ export class StageManager {
     }
 
     console.log(`Transitioning from ${this.currentStage?.name || 'unknown'} to ${targetStage.name}`);
+    console.log(`Target stage has ${targetStage.npcs?.length || 0} NPCs defined`);
 
     // Load the new stage
     const success = await this.loadStage(toStageId, parentContainer);
     if (!success) {
       return { success: false };
+    }
+
+    console.log(`Stage transition completed, checking NPC container...`);
+    if (this.npcManager) {
+      const container = this.npcManager.getContainer();
+      console.log(`NPC container after transition: ${container.children.length} children, visible: ${container.visible}`);
     }
 
     // Determine character position in new stage

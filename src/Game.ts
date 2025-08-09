@@ -787,6 +787,29 @@ export class Game {
       this.characterController.setYMovementFactor(result.stage.perspectiveMovement.yMovementFactor);
     }
 
+    // Ensure NPC container is still properly attached and visible
+    const npcContainer = this.npcManager.getContainer();
+    if (!npcContainer.parent) {
+      console.log("Re-adding orphaned NPC container to stage");
+      this.app.stage.addChild(npcContainer);
+    }
+    
+    // Force NPC container to render above background and objects after stage transition
+    if (npcContainer.parent) {
+      const parent = npcContainer.parent;
+      const topIndex = parent.children.length - 1;
+      parent.setChildIndex(npcContainer, topIndex);
+      console.log(`Moved NPC container to top of render order (index ${topIndex})`);
+    }
+    
+    console.log(`After stage transition - NPC container: parent=${npcContainer.parent?.constructor.name}, children=${npcContainer.children.length}, visible=${npcContainer.visible}`);
+    
+    // Debug stage hierarchy after transition
+    console.log(`Stage children after transition: ${this.app.stage.children.length}`);
+    this.app.stage.children.forEach((child, index) => {
+      console.log(`  ${index}: ${child.constructor.name} (visible: ${child.visible}, children: ${child.children?.length || 0})`);
+    });
+
     console.log(`Stage transition completed to: ${result.stage.name}`);
     console.log(`Character positioned at: (${result.characterPosition.x}, ${result.characterPosition.y})`);
     console.log(`Character sprite visible: ${this.characterSprite.visible}, alpha: ${this.characterSprite.alpha}`);
