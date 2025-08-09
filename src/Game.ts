@@ -1,4 +1,4 @@
-import { Application, Sprite } from "pixi.js";
+import { Application, Sprite, Container } from "pixi.js";
 import { GameConfig, GameState, Position } from "./types";
 import { AssetManager } from "./AssetManager";
 import { SpriteGenerator, CharacterSprites } from "./SpriteGenerator";
@@ -16,6 +16,7 @@ import { StageTransition } from "./Stage";
 import { PerspectiveScaler } from "./PerspectiveScaler";
 import { NPCManager } from "./NPCManager";
 import { NPC } from "./NPC";
+import { DepthManager } from "./DepthManager";
 
 export class Game {
   private app!: Application;
@@ -36,6 +37,8 @@ export class Game {
   private stageManager: StageManager;
   private perspectiveScaler: PerspectiveScaler;
   private npcManager: NPCManager;
+  private depthManager?: DepthManager;
+  private gameWorldContainer?: Container;
 
   // UI layout configuration
   private gameAreaWidth: number = 1024; // Original game area (unchanged)
@@ -108,6 +111,13 @@ export class Game {
 
     this.gameContainer = document.getElementById("pixi-container")!;
     this.gameContainer.appendChild(this.app.canvas);
+
+    // Create game world container for depth sorting
+    this.gameWorldContainer = new Container();
+    this.app.stage.addChild(this.gameWorldContainer);
+
+    // Initialize depth manager
+    this.depthManager = new DepthManager(this.gameWorldContainer);
   }
 
   private setupCanvas(): void {
@@ -170,17 +180,21 @@ export class Game {
     // Initialize the stage system with predefined stages
     this.stageManager.initializeStages();
 
-    // Load the initial stage (cyberpunk street)
+    // Set up depth managers BEFORE loading stage
+    this.stageManager.setDepthManager(this.depthManager!);
+    this.npcManager.setDepthManager(this.depthManager!);
+
+    // Load the initial stage (cyberpunk street) into game world container
     const success = await this.stageManager.loadStage(
       "cyberpunk-street",
-      this.app.stage,
+      this.gameWorldContainer!,
     );
     if (!success) {
       throw new Error("Failed to load initial stage");
     }
 
-    // Add highlight container to stage (above background, below character)
-    this.app.stage.addChild(this.objectManager.getHighlightContainer());
+    // Add highlight container to game world (above background, below character)
+    this.gameWorldContainer!.addChild(this.objectManager.getHighlightContainer());
 
     console.log("Stage system initialized and initial stage loaded");
     console.log(`Stage children after loading: ${this.app.stage.children.length}`);
@@ -228,27 +242,24 @@ export class Game {
     this.characterSprite.x = currentStage.characterStartPosition.x;
     this.characterSprite.y = currentStage.characterStartPosition.y;
 
-    this.app.stage.addChild(this.characterSprite);
-
-    // Add NPC container to stage and ensure it's on top
-    this.app.stage.addChild(this.npcManager.getContainer());
-    
-    // Force NPC container to front (above all other elements)
-    const npcContainer = this.npcManager.getContainer();
-    this.app.stage.setChildIndex(npcContainer, this.app.stage.children.length - 1);
-    
-    // Debug NPC container and stage hierarchy
-    console.log(`NPC Container added to stage: visible=${npcContainer.visible}, alpha=${npcContainer.alpha}, children=${npcContainer.children.length}`);
-    console.log(`Stage children after adding NPC container: ${this.app.stage.children.length}`);
-    this.app.stage.children.forEach((child, index) => {
-      console.log(`  ${index}: ${child.constructor.name} (visible: ${child.visible}, alpha: ${child.alpha})`);
-    });
+    // Register character sprite with depth manager
+    this.depthManager!.registerSprite(
+      "character", 
+      this.characterSprite, 
+      this.characterSprite.y,
+      "character"
+    );
 
     // Initialize character controller
     this.characterController = new CharacterController(
       this.characterSprite,
       this.characterSprites,
     );
+
+    // Set up depth manager callback for character movement
+    this.characterController.setMoveCallback((position: Position) => {
+      this.depthManager!.updateSpritePosition("character", position.y);
+    });
 
     // Set up walkable area from current stage
     this.characterController.setWalkableArea(currentStage.walkableArea);
@@ -732,7 +743,7 @@ export class Game {
     // Perform the stage transition
     const result = await this.stageManager.transitionToStage(
       transition.toStageId,
-      this.app.stage,
+      this.gameWorldContainer!,
       transition.targetPosition
     );
 
@@ -741,34 +752,15 @@ export class Game {
       return;
     }
 
-    // Update character position and walkable area for new stage
+    // Update character position and notify depth manager
     this.characterSprite.x = result.characterPosition.x;
     this.characterSprite.y = result.characterPosition.y;
     
-    // Ensure character sprite and highlights are visible above the new background
-    if (this.characterSprite.parent) {
-      // Move highlight container above stage background
-      const highlightContainer = this.objectManager.getHighlightContainer();
-      if (highlightContainer.parent) {
-        highlightContainer.parent.setChildIndex(
-          highlightContainer,
-          highlightContainer.parent.children.length - 1
-        );
-      }
-      
-      // Move character sprite to front
-      this.characterSprite.parent.setChildIndex(
-        this.characterSprite, 
-        this.characterSprite.parent.children.length - 1
-      );
-      
-      // Ensure speech bubble is also above background
-      if (this.speechBubble && this.speechBubble.parent) {
-        this.speechBubble.parent.setChildIndex(
-          this.speechBubble,
-          this.speechBubble.parent.children.length - 1
-        );
-      }
+    // Update depth manager with new character position
+    if (this.depthManager) {
+      this.depthManager.updateSpritePosition("character", result.characterPosition.y);
+      this.depthManager.forceSortSprites();
+      console.log(`Updated character position in depth manager: Y=${result.characterPosition.y}`);
     }
     
     // Update character controller with new stage's walkable area
@@ -1187,6 +1179,11 @@ export class Game {
     // Update character perspective scaling based on Y position
     if (this.characterSprite) {
       this.perspectiveScaler.updateSpriteScale(this.characterSprite);
+    }
+
+    // Update depth sorting if needed
+    if (this.depthManager) {
+      this.depthManager.sortSprites();
     }
 
     // Check if movement just completed and we have a pending action

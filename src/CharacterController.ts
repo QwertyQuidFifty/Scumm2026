@@ -25,6 +25,7 @@ export class CharacterController {
   private animationState: AnimationState;
   private moveSpeed: number = 180; // pixels per second (increased 50% from 120 for better feel)
   private walkableArea?: Position[]; // The street polygon
+  private moveCallback?: (position: Position) => void; // Callback for position updates
   // Interaction points for each object (within walkable area) - adjusted for background offset
   private interactionPoints: Map<string, Position> = new Map([
     ["hotel-sign", { x: 202, y: 657 }], // Near hotel sign, on street (617 + 40)
@@ -209,6 +210,11 @@ export class CharacterController {
     this.sprite.x = x;
     this.sprite.y = y;
 
+    // Notify depth manager of position change
+    if (this.moveCallback) {
+      this.moveCallback({ x, y });
+    }
+
     // Check if movement is complete
     if (progress >= 1.0) {
       this.movementState.isMoving = false;
@@ -265,5 +271,9 @@ export class CharacterController {
 
   setYMovementFactor(factor: number): void {
     this.yMovementFactor = Math.max(0.1, Math.min(1.0, factor)); // Clamp between 0.1 and 1.0
+  }
+
+  setMoveCallback(callback: (position: Position) => void): void {
+    this.moveCallback = callback;
   }
 }

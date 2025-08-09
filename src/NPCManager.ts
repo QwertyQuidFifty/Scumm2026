@@ -2,6 +2,7 @@ import { Container, Renderer } from "pixi.js";
 import { NPC, NPCData } from "./NPC";
 import { CharacterSprites, SpriteGenerator } from "./SpriteGenerator";
 import { Position } from "./types";
+import { DepthManager } from "./DepthManager";
 
 export class NPCManager {
   private npcs: Map<string, NPC> = new Map();
@@ -9,6 +10,7 @@ export class NPCManager {
   private spriteCache: Map<string, CharacterSprites> = new Map();
   private spriteGenerator?: SpriteGenerator;
   private renderer?: Renderer;
+  private depthManager?: DepthManager;
 
   constructor() {
     this.npcContainer = new Container();
@@ -17,6 +19,10 @@ export class NPCManager {
   setSpriteGenerator(spriteGenerator: SpriteGenerator, renderer: Renderer): void {
     this.spriteGenerator = spriteGenerator;
     this.renderer = renderer;
+  }
+
+  setDepthManager(depthManager: DepthManager): void {
+    this.depthManager = depthManager;
   }
 
   setNPCSprites(sprites: CharacterSprites): void {
@@ -168,6 +174,12 @@ export class NPCManager {
     }
 
     npc.setPosition(position);
+    
+    // Update depth manager with new Y position
+    if (this.depthManager) {
+      this.depthManager.updateSpritePosition(`npc-${npcId}`, position.y);
+    }
+    
     return true;
   }
 

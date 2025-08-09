@@ -4,6 +4,7 @@ import { AssetManager } from "./AssetManager";
 import { ObjectManager } from "./ObjectManager";
 import { KeySprite } from "./KeySprite";
 import { NPCManager } from "./NPCManager";
+import { DepthManager } from "./DepthManager";
 
 export class StageManager {
   private stages: Map<string, Stage> = new Map();
@@ -15,6 +16,7 @@ export class StageManager {
   private assetManager: AssetManager;
   private objectManager: ObjectManager;
   private npcManager?: NPCManager;
+  private depthManager?: DepthManager;
   // Track objects that have been permanently removed from stages
   private removedObjects: Map<string, Set<string>> = new Map(); // stageId -> Set<objectId>
   constructor(
@@ -261,6 +263,10 @@ export class StageManager {
     this.npcManager = npcManager;
   }
 
+  setDepthManager(depthManager: DepthManager): void {
+    this.depthManager = depthManager;
+  }
+
   addStage(stage: Stage): void {
     this.stages.set(stage.id, stage);
   }
@@ -390,12 +396,25 @@ export class StageManager {
     this.backgroundSprite.x = 0;
     this.backgroundSprite.y = 40;
 
-    // Add background to stage container and stage container to parent
-    this.stageContainer.addChild(this.backgroundSprite);
-    
-    // Only add stage container to parent if it's not already added
-    if (!this.stageContainer.parent) {
-      parentContainer.addChild(this.stageContainer);
+    // Register background with depth manager instead of adding directly to stage container
+    console.log(`loadBackground: depthManager exists: ${!!this.depthManager}`);
+    if (this.depthManager) {
+      this.depthManager.registerSprite(
+        "background",
+        this.backgroundSprite,
+        -1000, // Very low Y position to ensure it's always behind everything
+        "object"
+      );
+      console.log("Registered background sprite with depth manager at Y position -1000");
+    } else {
+      console.log("No depth manager available, using fallback rendering");
+      // Fallback: add background to stage container if no depth manager
+      this.stageContainer.addChild(this.backgroundSprite);
+      
+      // Only add stage container to parent if it's not already added
+      if (!this.stageContainer.parent) {
+        parentContainer.addChild(this.stageContainer);
+      }
     }
 
     return true;
@@ -436,7 +455,19 @@ export class StageManager {
     this.keySprite = new KeySprite();
     this.keySprite.x = stage.keyPosition.x;
     this.keySprite.y = stage.keyPosition.y;
-    parentContainer.addChild(this.keySprite);
+    
+    // Register key sprite with depth manager
+    if (this.depthManager) {
+      this.depthManager.registerSprite(
+        "key-sprite",
+        this.keySprite,
+        stage.keyPosition.y,
+        "object"
+      );
+      console.log(`Registered key sprite with depth manager at Y position ${stage.keyPosition.y}`);
+    } else {
+      parentContainer.addChild(this.keySprite);
+    }
   }
 
   private loadNPCs(stage: Stage): void {
@@ -456,7 +487,16 @@ export class StageManager {
 
     console.log(`Loading ${stage.npcs.length} NPCs for stage: ${stage.name}`);
 
-    // Clear existing NPCs first
+    // Clear existing NPCs from depth manager first
+    if (this.depthManager) {
+      // Remove all NPC sprites from depth manager
+      const existingNPCs = this.npcManager.getAllNPCs();
+      for (const npc of existingNPCs) {
+        this.depthManager.unregisterSprite(`npc-${npc.getId()}`);
+      }
+    }
+
+    // Clear existing NPCs
     this.npcManager.clearAllNPCs();
 
     // Add stage NPCs
@@ -467,12 +507,36 @@ export class StageManager {
       if (success) {
         loadedCount++;
         console.log(`Successfully added NPC: ${npcData.name}`);
+        
+        // Register NPC with depth manager
+        console.log(`loadNPCs: depthManager exists: ${!!this.depthManager} for NPC ${npcData.name}`);
+        if (this.depthManager) {
+          const npc = this.npcManager.getNPC(npcData.id);
+          if (npc) {
+            this.depthManager.registerSprite(
+              `npc-${npcData.id}`,
+              npc.getSprite(),
+              npcData.position.y,
+              "npc"
+            );
+            console.log(`Registered NPC ${npcData.name} with depth manager at Y position ${npcData.position.y}`);
+          } else {
+            console.log(`Could not get NPC ${npcData.name} from NPCManager for depth registration`);
+          }
+        } else {
+          console.log(`No depth manager available for NPC ${npcData.name}`);
+        }
       } else {
         console.error(`Failed to add NPC: ${npcData.name}`);
       }
     }
 
     console.log(`Loaded ${loadedCount}/${stage.npcs.length} NPCs for stage: ${stage.name}`);
+
+    // Force depth sort after loading all NPCs
+    if (this.depthManager) {
+      this.depthManager.forceSortSprites();
+    }
   }
 
   private cleanupCurrentStage(): void {
@@ -481,10 +545,20 @@ export class StageManager {
       this.stageContainer.parent.removeChild(this.stageContainer);
     }
 
+    // Unregister background from depth manager
+    if (this.depthManager && this.backgroundSprite) {
+      this.depthManager.unregisterSprite("background");
+    }
+
     // Remove background sprite
     if (this.backgroundSprite) {
       this.backgroundSprite.destroy();
       this.backgroundSprite = undefined;
+    }
+
+    // Unregister key sprite from depth manager
+    if (this.depthManager && this.keySprite) {
+      this.depthManager.unregisterSprite("key-sprite");
     }
 
     // Remove key sprite from parent container
@@ -518,7 +592,16 @@ export class StageManager {
   // Method to remove key sprite (for pickup functionality)
   removeKeySprite(parentContainer: Container): void {
     if (this.keySprite) {
-      parentContainer.removeChild(this.keySprite);
+      // Unregister from depth manager first
+      if (this.depthManager) {
+        this.depthManager.unregisterSprite("key-sprite");
+      }
+      
+      // Remove from container if it has a parent
+      if (this.keySprite.parent) {
+        this.keySprite.parent.removeChild(this.keySprite);
+      }
+      
       this.keySprite.destroy();
       this.keySprite = undefined;
     }
