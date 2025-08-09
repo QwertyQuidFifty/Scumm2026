@@ -38,6 +38,7 @@ export class NPC {
   private moveSpeed: number = 120; // Slightly slower than player for NPCs
   private walkableArea?: Position[];
   private onPositionChange?: (npcId: string, position: Position) => void;
+  private currentDialogueIndex: number = 0; // Track which dialogue to show next
 
   constructor(data: NPCData, sprites: CharacterSprites) {
     this.data = data;
@@ -122,6 +123,57 @@ export class NPC {
     return this.data.interactionPoint || { 
       x: this.sprite.x, 
       y: this.sprite.y + 30 // Default: stand slightly below NPC
+    };
+  }
+
+  // Get available dialogues
+  getDialogues(): string[] {
+    return this.data.dialogues || [];
+  }
+
+  // Get the next dialogue line (cycles through available dialogues)
+  getNextDialogue(): string | null {
+    const dialogues = this.getDialogues();
+    if (dialogues.length === 0) {
+      return null;
+    }
+
+    const dialogue = dialogues[this.currentDialogueIndex];
+    this.currentDialogueIndex = (this.currentDialogueIndex + 1) % dialogues.length;
+    
+    console.log(`NPC ${this.data.name} dialogue: "${dialogue}" (${this.currentDialogueIndex}/${dialogues.length})`);
+    return dialogue;
+  }
+
+  // Get a random dialogue line
+  getRandomDialogue(): string | null {
+    const dialogues = this.getDialogues();
+    if (dialogues.length === 0) {
+      return null;
+    }
+
+    const randomIndex = Math.floor(Math.random() * dialogues.length);
+    const dialogue = dialogues[randomIndex];
+    
+    console.log(`NPC ${this.data.name} random dialogue: "${dialogue}"`);
+    return dialogue;
+  }
+
+  // Reset dialogue index to start from beginning
+  resetDialogueIndex(): void {
+    this.currentDialogueIndex = 0;
+  }
+
+  // Check if NPC has any dialogues
+  hasDialogues(): boolean {
+    return this.getDialogues().length > 0;
+  }
+
+  // Get position where speech bubble should appear (above the NPC)
+  getSpeechBubblePosition(): Position {
+    return {
+      x: this.sprite.x,
+      y: this.sprite.y - 60 // Position speech bubble above NPC
     };
   }
 

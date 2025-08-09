@@ -17,6 +17,8 @@ import { PerspectiveScaler } from "./PerspectiveScaler";
 import { NPCManager } from "./NPCManager";
 import { NPC } from "./NPC";
 import { DepthManager } from "./DepthManager";
+import { DialogueManager, DialogueTree } from "./DialogueTree";
+import { DialogueUI } from "./DialogueUI";
 
 export class Game {
   private app!: Application;
@@ -39,6 +41,8 @@ export class Game {
   private npcManager: NPCManager;
   private depthManager?: DepthManager;
   private gameWorldContainer?: Container;
+  private dialogueManager: DialogueManager;
+  private dialogueUI?: DialogueUI;
 
   // UI layout configuration
   private gameAreaWidth: number = 1024; // Original game area (unchanged)
@@ -82,6 +86,7 @@ export class Game {
     );
     this.stageManager.setNPCManager(this.npcManager);
     this.perspectiveScaler = new PerspectiveScaler();
+    this.dialogueManager = new DialogueManager();
   }
 
   async initialize(): Promise<void> {
@@ -282,9 +287,291 @@ export class Game {
     this.speechBubble = new SpeechBubble();
     this.app.stage.addChild(this.speechBubble);
 
+    // Create dialogue UI
+    this.dialogueUI = new DialogueUI(this.config.gameWidth, this.config.gameHeight);
+    this.dialogueUI.setOnResponseSelected((responseId: string) => {
+      this.handleDialogueResponse(responseId);
+    });
+    this.app.stage.addChild(this.dialogueUI.getContainer());
+
     console.log(
       "Character sprite, controller, and speech bubble created and added to stage",
     );
+
+    // Initialize dialogue trees
+    this.initializeDialogueTrees();
+  }
+
+  private initializeDialogueTrees(): void {
+    // Jake the Bartender dialogue tree
+    const jakeTree: DialogueTree = {
+      npcId: "bartender",
+      startNodeId: "jake_greeting",
+      nodes: {
+        "jake_greeting": {
+          id: "jake_greeting",
+          npcText: "What'll it be, stranger? First drink in this joint?",
+          responses: [
+            {
+              id: "ask_about_city",
+              text: "Tell me about this city.",
+              nextNodeId: "jake_city_info"
+            },
+            {
+              id: "order_drink",
+              text: "I'll have whatever's strongest.",
+              nextNodeId: "jake_drink_order"
+            },
+            {
+              id: "ask_trouble",
+              text: "You look like someone who knows about trouble.",
+              nextNodeId: "jake_trouble"
+            },
+            {
+              id: "leave",
+              text: "Just looking around, thanks.",
+              nextNodeId: undefined // End dialogue
+            }
+          ]
+        },
+        "jake_city_info": {
+          id: "jake_city_info",
+          npcText: "This city's going to hell, that's for sure. Corpo suits running everything, street gangs fighting for scraps. But the drinks are still cold.",
+          responses: [
+            {
+              id: "ask_corpo",
+              text: "What's the deal with these corporate types?",
+              nextNodeId: "jake_corpo_info"
+            },
+            {
+              id: "ask_gangs",
+              text: "Street gangs sound dangerous.",
+              nextNodeId: "jake_gang_info"
+            },
+            {
+              id: "back_to_business",
+              text: "Enough small talk. What about that drink?",
+              nextNodeId: "jake_drink_order"
+            }
+          ]
+        },
+        "jake_drink_order": {
+          id: "jake_drink_order",
+          npcText: "Coming right up! That'll be 50 credits. Keep your wits about you out there.",
+          responses: [
+            {
+              id: "pay_drink",
+              text: "Here's your credits.",
+              nextNodeId: undefined, // End dialogue
+              conditions: [{ type: "always" }] // Could check for credits item
+            },
+            {
+              id: "no_money",
+              text: "Actually, I'm a bit short on credits.",
+              nextNodeId: "jake_no_money"
+            }
+          ]
+        },
+        "jake_trouble": {
+          id: "jake_trouble",
+          npcText: "Trouble finds everyone in this city eventually. Best to keep your head down and your blaster charged.",
+          responses: [
+            {
+              id: "ask_more_trouble",
+              text: "What kind of trouble have you seen?",
+              nextNodeId: "jake_city_info"
+            },
+            {
+              id: "thanks_advice",
+              text: "Thanks for the advice.",
+              nextNodeId: undefined
+            }
+          ]
+        },
+        "jake_corpo_info": {
+          id: "jake_corpo_info", 
+          npcText: "Corporate executives think they own the place. Maybe they do. They've got private armies and unlimited credits.",
+          responses: [
+            {
+              id: "ask_resistance",
+              text: "Anyone fighting back against them?",
+              nextNodeId: "jake_gang_info"
+            },
+            {
+              id: "end_corpo_talk",
+              text: "Interesting. I'll keep that in mind.",
+              nextNodeId: undefined
+            }
+          ]
+        },
+        "jake_gang_info": {
+          id: "jake_gang_info",
+          npcText: "The gangs try to carve out territory, but it's mostly just survival. Real resistance would take more organization than they've got.",
+          responses: [
+            {
+              id: "ask_join",
+              text: "Maybe someone could organize them?",
+              nextNodeId: "jake_organize_response"
+            },
+            {
+              id: "end_gang_talk",
+              text: "Sounds rough out there.",
+              nextNodeId: undefined
+            }
+          ]
+        },
+        "jake_organize_response": {
+          id: "jake_organize_response",
+          npcText: "Hah! You got that kind of death wish? More power to you, kid. Just remember where to get a good drink when you need one.",
+          responses: [
+            {
+              id: "laugh_it_off",
+              text: "Just thinking out loud.",
+              nextNodeId: undefined
+            }
+          ]
+        },
+        "jake_no_money": {
+          id: "jake_no_money",
+          npcText: "No credits, no service. That's the way it works. Come back when you've got something to trade.",
+          responses: [
+            {
+              id: "understand",
+              text: "Fair enough. I'll be back.",
+              nextNodeId: undefined
+            }
+          ]
+        }
+      }
+    };
+
+    // Maya (Street Vendor) dialogue tree
+    const mayaTree: DialogueTree = {
+      npcId: "street-vendor",
+      startNodeId: "maya_greeting",
+      nodes: {
+        "maya_greeting": {
+          id: "maya_greeting",
+          npcText: "Got some rare tech here, if you're buying. Don't trust the corpo suits - they'll sell you overpriced junk.",
+          responses: [
+            {
+              id: "browse_tech",
+              text: "What kind of tech are you selling?",
+              nextNodeId: "maya_tech_catalog"
+            },
+            {
+              id: "ask_corpo",
+              text: "Why shouldn't I trust the corporations?",
+              nextNodeId: "maya_corpo_warning"
+            },
+            {
+              id: "ask_location",
+              text: "How long have you been working this corner?",
+              nextNodeId: "maya_street_life"
+            },
+            {
+              id: "not_buying",
+              text: "Just browsing, thanks.",
+              nextNodeId: undefined
+            }
+          ]
+        },
+        "maya_tech_catalog": {
+          id: "maya_tech_catalog",
+          npcText: "I've got data chips with real information, not the filtered corpo propaganda. Also some modified comm devices and scanner jammers.",
+          responses: [
+            {
+              id: "buy_data_chip",
+              text: "I'll take a data chip.",
+              nextNodeId: "maya_sell_chip",
+              conditions: [{ type: "always" }] // Could check for credits
+            },
+            {
+              id: "ask_jammers",
+              text: "Tell me about those scanner jammers.",
+              nextNodeId: "maya_jammer_info"
+            },
+            {
+              id: "just_looking",
+              text: "Let me think about it.",
+              nextNodeId: undefined
+            }
+          ]
+        },
+        "maya_corpo_warning": {
+          id: "maya_corpo_warning",
+          npcText: "Corporations want to control information flow. They sell you 'smart' devices that spy on you, then charge you for the privilege.",
+          responses: [
+            {
+              id: "agree_corpo_bad",
+              text: "You're right to be suspicious.",
+              nextNodeId: "maya_alliance"
+            },
+            {
+              id: "defend_corpo",
+              text: "Some corporate tech is pretty useful though.",
+              nextNodeId: "maya_disagreement"
+            },
+            {
+              id: "neutral_response",
+              text: "I try to stay out of politics.",
+              nextNodeId: "maya_tech_catalog"
+            }
+          ]
+        },
+        "maya_sell_chip": {
+          id: "maya_sell_chip",
+          npcText: "Smart choice. This chip has real street intel - not the sanitized news feeds. That'll be 100 credits.",
+          responses: [
+            {
+              id: "pay_chip",
+              text: "Here's your payment.",
+              nextNodeId: undefined,
+              addItem: "data_chip_maya"
+            },
+            {
+              id: "too_expensive",
+              text: "That's pretty steep.",
+              nextNodeId: "maya_negotiate"
+            }
+          ]
+        },
+        "maya_alliance": {
+          id: "maya_alliance",
+          npcText: "Finally, someone who gets it! Stick around the underground scene and you'll learn the real truth about this city.",
+          responses: [
+            {
+              id: "want_to_help",
+              text: "Maybe I can help with something.",
+              nextNodeId: "maya_potential_job"
+            },
+            {
+              id: "just_surviving",
+              text: "I'm just trying to survive like everyone else.",
+              nextNodeId: undefined
+            }
+          ]
+        },
+        "maya_potential_job": {
+          id: "maya_potential_job",
+          npcText: "Keep your ears open. Word gets around about people who might be interested in... freelance work. Check back with me later.",
+          responses: [
+            {
+              id: "will_do",
+              text: "I'll remember that.",
+              nextNodeId: undefined,
+              setFlag: { key: "maya_trusts_player", value: true }
+            }
+          ]
+        }
+      }
+    };
+
+    // Register the dialogue trees
+    this.dialogueManager.registerDialogueTree(jakeTree);
+    this.dialogueManager.registerDialogueTree(mayaTree);
+
+    console.log("Dialogue trees initialized for Jake and Maya");
   }
 
   private setupUI(): void {
@@ -343,6 +630,15 @@ export class Game {
     console.log(
       `Canvas clicked at game coordinates: (${position.x}, ${position.y})`,
     );
+
+    // Check if dialogue is active and handle dialogue UI clicks
+    if (this.dialogueManager.isDialogueActive()) {
+      if (this.dialogueUI && this.dialogueUI.handleClick(position.x, position.y)) {
+        return; // Dialogue UI handled the click
+      }
+      // Ignore other clicks during dialogue
+      return;
+    }
 
     // Check if click hit an NPC first (NPCs have priority over objects)
     const clickedNPC = this.npcManager.getNPCAtPosition(position.x, position.y);
@@ -481,6 +777,11 @@ export class Game {
   private handleKeyPress(key: string): void {
     console.log(`Key pressed: ${key}`);
 
+    // Handle dialogue UI input first
+    if (this.dialogueUI && this.dialogueUI.handleKeyInput(key)) {
+      return; // Dialogue UI consumed the input
+    }
+
     // NPC movement testing commands
     if (key === "n") {
       // Move random NPC to random position
@@ -512,6 +813,37 @@ export class Game {
       } else {
         console.log("Could not move Jake");
       }
+      return;
+    }
+
+    if (key === "1") {
+      // Test dialogue with Jake the Bartender
+      const jake = this.npcManager.getNPCForDialogue("bartender");
+      if (jake) {
+        this.handleNPCInteraction(jake, "talk");
+        console.log("Testing dialogue with Jake");
+      } else {
+        console.log("Jake not found");
+      }
+      return;
+    }
+
+    if (key === "2") {
+      // Test dialogue with Maya
+      const maya = this.npcManager.getNPCForDialogue("street-vendor");
+      if (maya) {
+        this.handleNPCInteraction(maya, "talk");
+        console.log("Testing dialogue with Maya");
+      } else {
+        console.log("Maya not found");
+      }
+      return;
+    }
+
+    if (key === "d") {
+      // Debug: Show all dialogue flags
+      const flags = this.dialogueManager.getAllFlags();
+      console.log("Current dialogue flags:", flags);
       return;
     }
 
@@ -691,37 +1023,157 @@ export class Game {
   }
 
   private handleNPCInteraction(npc: NPC, action: string): void {
-    // Simple NPC interaction for now
-    let responseText: string;
-    
     switch (action) {
       case "talk":
-        responseText = `Hello there! I'm ${npc.getName()}.`;
-        npc.startTalking();
-        // Stop talking after 3 seconds
-        setTimeout(() => {
-          npc.stopTalking();
-        }, 3000);
+        // Try to start dialogue tree first
+        if (this.startDialogueTree(npc)) {
+          console.log(`Started dialogue tree with ${npc.getName()}`);
+          return;
+        }
+        
+        // Fallback to simple dialogue system if no tree
+        const dialogueResult = this.npcManager.getNPCDialogue(npc.getId());
+        if (dialogueResult.dialogue) {
+          if (this.speechBubble && dialogueResult.position) {
+            this.speechBubble.showSpeech(dialogueResult.dialogue);
+            this.speechBubble.positionAboveCharacter(
+              dialogueResult.position.x,
+              dialogueResult.position.y,
+              this.config.gameHeight,
+            );
+          }
+          
+          // Start talking animation
+          npc.startTalking();
+          setTimeout(() => npc.stopTalking(), 3000);
+          
+          console.log(`NPC ${npc.getName()} says: "${dialogueResult.dialogue}"`);
+        } else {
+          // Final fallback
+          const fallbackText = `Hello there! I'm ${npc.getName()}.`;
+          if (this.speechBubble) {
+            const position = npc.getSpeechBubblePosition();
+            this.speechBubble.showSpeech(fallbackText);
+            this.speechBubble.positionAboveCharacter(position.x, position.y, this.config.gameHeight);
+          }
+          console.log(`NPC ${npc.getName()} says: "${fallbackText}"`);
+        }
         break;
+        
       case "look":
-        responseText = npc.getDescription();
+        const description = npc.getDescription();
+        const position = npc.getSpeechBubblePosition();
+        
+        if (this.speechBubble) {
+          this.speechBubble.showSpeech(description);
+          this.speechBubble.positionAboveCharacter(position.x, position.y, this.config.gameHeight);
+        }
+        console.log(`NPC ${npc.getName()}: ${description}`);
         break;
+        
       default:
-        responseText = `I can't ${action} with ${npc.getName()}.`;
+        const errorText = `I can't ${action} with ${npc.getName()}.`;
+        const errorPosition = npc.getSpeechBubblePosition();
+        
+        if (this.speechBubble) {
+          this.speechBubble.showSpeech(errorText);
+          this.speechBubble.positionAboveCharacter(errorPosition.x, errorPosition.y, this.config.gameHeight);
+        }
+        console.log(errorText);
+    }
+  }
+
+  // Handle dialogue response selection
+  private handleDialogueResponse(responseId: string): void {
+    if (!this.dialogueManager.isDialogueActive()) {
+      return;
+    }
+
+    // Get current inventory for condition checking
+    const inventoryItems = this.inventorySystem?.getAllItems() || [];
+    const inventorySet = new Set(inventoryItems.map(item => item.id));
+
+    // Process the response
+    const nextNode = this.dialogueManager.chooseResponse(responseId, inventorySet);
+    
+    if (nextNode) {
+      // Continue dialogue with next node
+      this.showDialogueNode(nextNode);
+    } else {
+      // End dialogue
+      this.endDialogue();
+    }
+  }
+
+  // Start dialogue tree with an NPC
+  private startDialogueTree(npc: NPC): boolean {
+    const npcPosition = npc.getSpeechBubblePosition();
+    const dialogueNode = this.dialogueManager.startDialogue(npc.getId(), npcPosition);
+    
+    if (dialogueNode) {
+      this.showDialogueNode(dialogueNode);
+      return true;
     }
     
-    // Show response in speech bubble positioned above the NPC
-    if (this.speechBubble) {
-      const npcPosition = npc.getPosition();
-      this.speechBubble.showSpeech(responseText);
+    return false;
+  }
+
+  // Show a dialogue node (NPC text + response options)
+  private showDialogueNode(node: any): void {
+    const state = this.dialogueManager.getCurrentState();
+    
+    // Show NPC text in speech bubble
+    if (this.speechBubble && state.npcPosition) {
+      this.speechBubble.showSpeech(node.npcText);
       this.speechBubble.positionAboveCharacter(
-        npcPosition.x,
-        npcPosition.y,
-        this.config.gameHeight,
+        state.npcPosition.x,
+        state.npcPosition.y,
+        this.config.gameHeight
       );
     }
     
-    console.log(`NPC Interaction: ${responseText}`);
+    // Show response options
+    const availableResponses = this.dialogueManager.getAvailableResponses();
+    if (this.dialogueUI) {
+      this.dialogueUI.showResponses(availableResponses);
+    }
+
+    // Start NPC talking animation
+    if (state.npcId) {
+      const npc = this.npcManager.getNPCForDialogue(state.npcId);
+      if (npc) {
+        npc.startTalking();
+      }
+    }
+
+    console.log(`Showing dialogue: "${node.npcText}" with ${availableResponses.length} responses`);
+  }
+
+  // End dialogue and restore normal game state
+  private endDialogue(): void {
+    // Hide dialogue UI
+    if (this.dialogueUI) {
+      this.dialogueUI.hide();
+    }
+    
+    // Hide speech bubble
+    if (this.speechBubble) {
+      this.speechBubble.hideSpeech();
+    }
+    
+    // Stop NPC talking animation
+    const state = this.dialogueManager.getCurrentState();
+    if (state.npcId) {
+      const npc = this.npcManager.getNPCForDialogue(state.npcId);
+      if (npc) {
+        npc.stopTalking();
+      }
+    }
+    
+    // End dialogue in manager
+    this.dialogueManager.endDialogue();
+    
+    console.log("Dialogue ended, game controls restored");
   }
 
   private handleGetAction(object: InteractiveObject): void {

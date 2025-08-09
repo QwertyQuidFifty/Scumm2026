@@ -218,6 +218,43 @@ export class NPCManager {
     }
   }
 
+  // Get dialogue from a specific NPC
+  getNPCDialogue(npcId: string, useRandom: boolean = false): { dialogue: string | null; position: Position | null } {
+    const npc = this.npcs.get(npcId);
+    if (!npc) {
+      console.warn(`NPC with id ${npcId} not found for dialogue`);
+      return { dialogue: null, position: null };
+    }
+
+    const dialogue = useRandom ? npc.getRandomDialogue() : npc.getNextDialogue();
+    const position = npc.getSpeechBubblePosition();
+
+    return { dialogue, position };
+  }
+
+  // Check if an NPC has dialogue available
+  npcHasDialogue(npcId: string): boolean {
+    const npc = this.npcs.get(npcId);
+    if (!npc) {
+      return false;
+    }
+
+    return npc.hasDialogues();
+  }
+
+  // Reset dialogue index for a specific NPC
+  resetNPCDialogue(npcId: string): void {
+    const npc = this.npcs.get(npcId);
+    if (npc) {
+      npc.resetDialogueIndex();
+    }
+  }
+
+  // Get NPC by position (for click detection) - enhanced for dialogue
+  getNPCForDialogue(npcId: string): NPC | undefined {
+    return this.npcs.get(npcId);
+  }
+
   // Set walkable area for all NPCs
   setWalkableArea(walkableArea: Position[]): void {
     for (const npc of this.npcs.values()) {
