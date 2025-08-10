@@ -25,7 +25,7 @@ export class ActionBar {
   private setupTextStyle(): void {
     this.textStyle = new TextStyle({
       fontFamily: "Courier New",
-      fontSize: 20, // Reduced font size to fit smaller bar
+      fontSize: 28, // Reduced font size to fit smaller bar
       fill: this.normalColor, // bright purple to match action buttons
       align: "left",
     });

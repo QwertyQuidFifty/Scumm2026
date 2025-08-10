@@ -56,10 +56,10 @@ export class CommandPanel {
   private setupTextStyle(): void {
     this.textStyle = new TextStyle({
       fontFamily: "Courier New",
-      fontSize: 48, // Even larger font size without button boxes
+      fontSize: 52, // Even larger font size without button boxes
       fill: 0xaa00ff, // bright purple (will be overridden per button)
       align: "center",
-      fontWeight: "bold",
+      fontWeight: "bold"
     });
   }
 
@@ -186,9 +186,10 @@ export class CommandPanel {
     // Create a new style for this specific button to avoid shared style issues
     button.text.style = new TextStyle({
       fontFamily: "Courier New",
-      fontSize: 28,
+      fontSize: 34,
       fill: textColor,
       align: "center",
+      fontWeight: "bold"
     });
   }
 

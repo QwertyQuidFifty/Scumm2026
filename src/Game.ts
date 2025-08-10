@@ -437,25 +437,13 @@ export class Game {
           id: "jake_organize_response",
           npcText:
             "Hah! You got that kind of death wish? More power to you, kid. Just remember where to get a good drink when you need one.",
-          responses: [
-            {
-              id: "laugh_it_off",
-              text: "Just thinking out loud.",
-              nextNodeId: undefined,
-            },
-          ],
+          responses: [], // No responses - dialogue ends after NPC speaks
         },
         jake_no_money: {
           id: "jake_no_money",
           npcText:
             "No credits, no service. That's the way it works. Come back when you've got something to trade.",
-          responses: [
-            {
-              id: "understand",
-              text: "Fair enough. I'll be back.",
-              nextNodeId: undefined,
-            },
-          ],
+          responses: [], // No responses - dialogue ends after NPC speaks
         },
         jake_leave_response: {
           id: "jake_leave_response",

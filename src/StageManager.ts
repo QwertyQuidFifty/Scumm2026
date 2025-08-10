@@ -148,7 +148,7 @@ export class StageManager {
         {
           id: "bartender",
           name: "Jake the Bartender",
-          position: { x: 750, y: 630 }, // Near the bar area
+          position: { x: 756, y: 659 }, // Near the bar area
           description:
             "A gruff bartender with cybernetic implants. He's seen it all.",
           dialogues: [
@@ -158,12 +158,12 @@ export class StageManager {
           ],
           defaultAction: "talk",
           spriteType: "bartender",
-          interactionPoint: { x: 720, y: 660 }, // Stand in front of bar counter
+          interactionPoint: { x: 681, y: 667 }, // Stand in front of bar counter
         },
         {
           id: "street-vendor",
           name: "Maya",
-          position: { x: 300, y: 680 }, // On the street
+          position: { x: 36, y: 712 }, // On the street
           description:
             "A street vendor selling data chips and tech components.",
           dialogues: [
@@ -173,7 +173,7 @@ export class StageManager {
           ],
           defaultAction: "talk",
           spriteType: "customer",
-          interactionPoint: { x: 280, y: 710 }, // Stand in front of vendor on street
+          interactionPoint: { x: 145, y: 703 }, // Stand in front of vendor on street
         },
       ],
       characterStartPosition: { x: 400, y: 690 },
