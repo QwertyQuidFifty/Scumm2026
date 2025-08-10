@@ -11,6 +11,7 @@ export class ActionBar {
   private defaultText: string = "Walk to";
   private normalColor: number = 0xaa00ff; // bright purple
   private flashColor: number = 0xff69b4; // hot pink
+  private isDisabled: boolean = false;
 
   constructor(width: number) {
     this.width = width;
@@ -161,6 +162,25 @@ export class ActionBar {
   revertColor(): void {
     // Revert to normal color when action is complete
     this.text.style.fill = this.normalColor;
+  }
+
+  setDisabled(disabled: boolean): void {
+    this.isDisabled = disabled;
+    this.updateDisabledState();
+  }
+
+  private updateDisabledState(): void {
+    if (this.isDisabled) {
+      // Grey out text and background when disabled
+      this.text.style.fill = 0x666666; // Grey text
+      this.background.clear();
+      this.background.rect(0, 0, this.width, this.height).fill(0x2a2a2a); // Darker grey background
+    } else {
+      // Restore normal appearance when enabled
+      this.text.style.fill = this.normalColor;
+      this.background.clear();
+      this.background.rect(0, 0, this.width, this.height).fill(0x1a1a1a); // Original dark background
+    }
   }
 
   destroy(): void {

@@ -1215,6 +1215,9 @@ export class Game {
     if (this.inventorySystem) {
       this.inventorySystem.setDisabled(true);
     }
+    if (this.actionBar) {
+      this.actionBar.setDisabled(true);
+    }
 
     // Show NPC text in speech bubble
     if (this.speechBubble && state.npcPosition) {
@@ -1287,6 +1290,9 @@ export class Game {
     }
     if (this.inventorySystem) {
       this.inventorySystem.setDisabled(false);
+    }
+    if (this.actionBar) {
+      this.actionBar.setDisabled(false);
     }
 
     // Hide dialogue UI
