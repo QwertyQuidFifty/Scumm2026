@@ -777,6 +777,11 @@ export class Game {
   }
 
   private handleCanvasRightClick(position: Position): void {
+    // Disable right-click default actions during dialogue
+    if (this.dialogueManager.isDialogueActive()) {
+      return;
+    }
+
     console.log(
       `Canvas right-clicked at game coordinates: (${position.x}, ${position.y})`,
     );
@@ -899,6 +904,11 @@ export class Game {
   }
 
   private handleCanvasHover(position: Position): void {
+    // Disable hover actions and action bar changes during dialogue
+    if (this.dialogueManager.isDialogueActive()) {
+      return;
+    }
+
     // Don't handle canvas hover for UI area (inventory/command panel area)
     // UI area starts at gameAreaWidth + 10
     const uiAreaStartX = this.gameAreaWidth + 10;
@@ -970,6 +980,11 @@ export class Game {
   }
 
   private handleCanvasHoverExit(): void {
+    // Disable hover exit actions during dialogue
+    if (this.dialogueManager.isDialogueActive()) {
+      return;
+    }
+
     // Clear object hover states
     this.objectManager.clearHover();
 
