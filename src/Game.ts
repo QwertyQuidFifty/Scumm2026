@@ -1219,9 +1219,12 @@ export class Game {
       this.actionBar.setDisabled(true);
     }
 
-    // Show NPC text in speech bubble
+    // Calculate display time based on text length
+    const displayTime = this.calculateDialogueDisplayTime(node.npcText);
+
+    // Show NPC text in speech bubble with calculated display time
     if (this.speechBubble && state.npcPosition) {
-      this.speechBubble.showSpeech(node.npcText);
+      this.speechBubble.showSpeech(node.npcText, displayTime);
       this.speechBubble.positionAboveCharacter(
         state.npcPosition.x,
         state.npcPosition.y,
@@ -1236,9 +1239,6 @@ export class Game {
         npc.startTalking();
       }
     }
-
-    // Calculate display time based on text length
-    const displayTime = this.calculateDialogueDisplayTime(node.npcText);
 
     console.log(`Showing dialogue: "${node.npcText}" for ${displayTime}ms`);
 
