@@ -281,6 +281,9 @@ export class Game {
     this.perspectiveScaler.setPerspectiveConfig(currentStage.perspectiveScale);
     this.perspectiveScaler.setBaseScale(1); // Base scale (sprite is already pre-scaled)
 
+    // Connect NPCManager with perspective scaler for automatic NPC scaling
+    this.npcManager.setPerspectiveScaler(this.perspectiveScaler);
+
     // Set up Y-axis movement factor for current stage
     if (currentStage.perspectiveMovement) {
       this.characterController.setYMovementFactor(

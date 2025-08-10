@@ -3,6 +3,7 @@ import { NPC, NPCData } from "./NPC";
 import { CharacterSprites, SpriteGenerator } from "./SpriteGenerator";
 import { Position } from "./types";
 import { DepthManager } from "./DepthManager";
+import { PerspectiveScaler } from "./PerspectiveScaler";
 
 export class NPCManager {
   private npcs: Map<string, NPC> = new Map();
@@ -11,6 +12,7 @@ export class NPCManager {
   private spriteGenerator?: SpriteGenerator;
   private renderer?: Renderer;
   private depthManager?: DepthManager;
+  private perspectiveScaler?: PerspectiveScaler;
 
   constructor() {
     this.npcContainer = new Container();
@@ -26,6 +28,10 @@ export class NPCManager {
 
   setDepthManager(depthManager: DepthManager): void {
     this.depthManager = depthManager;
+  }
+
+  setPerspectiveScaler(perspectiveScaler: PerspectiveScaler): void {
+    this.perspectiveScaler = perspectiveScaler;
   }
 
   setNPCSprites(sprites: CharacterSprites): void {
@@ -178,9 +184,14 @@ export class NPCManager {
 
   // Update NPC positions or animations if needed
   update(currentTime: number): void {
-    // Update all NPCs - movement and animations
+    // Update all NPCs - movement, animations, and perspective scaling
     for (const npc of this.npcs.values()) {
       npc.update(currentTime);
+
+      // Apply perspective scaling based on NPC position
+      if (this.perspectiveScaler) {
+        this.perspectiveScaler.updateSpriteScale(npc.getSprite());
+      }
     }
   }
 
