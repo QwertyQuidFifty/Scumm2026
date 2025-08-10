@@ -338,9 +338,7 @@ export class Game {
             {
               id: "leave",
               text: "Just looking around, thanks.",
-              nextNodeId: undefined, // End dialogue
-              npcFinalResponse:
-                "Suit yourself. Come back when you need a real drink.",
+              nextNodeId: "jake_leave_response",
             },
           ],
         },
@@ -374,10 +372,8 @@ export class Game {
             {
               id: "pay_drink",
               text: "Here's your credits.",
-              nextNodeId: undefined, // End dialogue
+              nextNodeId: "jake_drink_paid",
               conditions: [{ type: "always" }], // Could check for credits item
-              npcFinalResponse:
-                "Pleasure doing business. Watch your back out there.",
             },
             {
               id: "no_money",
@@ -399,9 +395,7 @@ export class Game {
             {
               id: "thanks_advice",
               text: "Thanks for the advice.",
-              nextNodeId: undefined,
-              npcFinalResponse:
-                "Don't mention it. Stay safe out there, friend.",
+              nextNodeId: "jake_advice_thanks",
             },
           ],
         },
@@ -463,6 +457,21 @@ export class Game {
             },
           ],
         },
+        jake_leave_response: {
+          id: "jake_leave_response",
+          npcText: "Suit yourself. Come back when you need a real drink.",
+          responses: [], // No responses - dialogue ends after NPC speaks
+        },
+        jake_drink_paid: {
+          id: "jake_drink_paid",
+          npcText: "Pleasure doing business. Watch your back out there.",
+          responses: [], // No responses - dialogue ends after NPC speaks
+        },
+        jake_advice_thanks: {
+          id: "jake_advice_thanks",
+          npcText: "Don't mention it. Stay safe out there, friend.",
+          responses: [], // No responses - dialogue ends after NPC speaks
+        },
       },
     };
 
@@ -494,9 +503,7 @@ export class Game {
             {
               id: "not_buying",
               text: "Just browsing, thanks.",
-              nextNodeId: undefined,
-              npcFinalResponse:
-                "No problem. Come back if you change your mind about that tech.",
+              nextNodeId: "maya_browsing_response",
             },
           ],
         },
@@ -588,12 +595,21 @@ export class Game {
             {
               id: "will_do",
               text: "I'll remember that.",
-              nextNodeId: undefined,
+              nextNodeId: "maya_trust_response",
               setFlag: { key: "maya_trusts_player", value: true },
-              npcFinalResponse:
-                "Good. I'll be in touch when something comes up.",
             },
           ],
+        },
+        maya_browsing_response: {
+          id: "maya_browsing_response",
+          npcText:
+            "No problem. Come back if you change your mind about that tech.",
+          responses: [], // No responses - dialogue ends after NPC speaks
+        },
+        maya_trust_response: {
+          id: "maya_trust_response",
+          npcText: "Good. I'll be in touch when something comes up.",
+          responses: [], // No responses - dialogue ends after NPC speaks
         },
       },
     };
@@ -1138,12 +1154,6 @@ export class Game {
       this.dialogueUI.hideResponses();
     }
 
-    // Get current node and selected response BEFORE processing
-    const currentNode = this.dialogueManager.getCurrentNode();
-    const selectedResponse = currentNode?.responses.find(
-      (r) => r.id === responseId,
-    );
-
     // Get current inventory for condition checking
     const inventoryItems = this.inventorySystem?.getAllItems() || [];
     const inventorySet = new Set(inventoryItems.map((item) => item.id));
@@ -1158,14 +1168,7 @@ export class Game {
       // Continue dialogue with next node
       this.showDialogueNode(nextNode);
     } else {
-      // Check if there's a final NPC response before ending
-      if (selectedResponse?.npcFinalResponse) {
-        // Show final NPC response before ending dialogue
-        this.showFinalNPCResponse(selectedResponse.npcFinalResponse);
-        return;
-      }
-
-      // End dialogue immediately if no final response
+      // No next node - end dialogue immediately
       this.endDialogue();
     }
   }
@@ -1221,9 +1224,16 @@ export class Game {
 
     console.log(`Showing dialogue: "${node.npcText}" for ${displayTime}ms`);
 
-    // Show response options after delay
+    // Show response options after delay, or end dialogue if no responses
     setTimeout(() => {
       const availableResponses = this.dialogueManager.getAvailableResponses();
+
+      if (availableResponses.length === 0) {
+        // No responses available - this is a final dialogue node, end the dialogue
+        this.endDialogue();
+        return;
+      }
+
       if (this.dialogueUI && this.dialogueManager.isDialogueActive()) {
         // Hide speech bubble and show response options simultaneously
         if (this.speechBubble) {
@@ -1240,48 +1250,6 @@ export class Game {
           npc.stopTalking();
         }
       }
-    }, displayTime);
-  }
-
-  // Show final NPC response before ending dialogue
-  private showFinalNPCResponse(finalText: string): void {
-    const state = this.dialogueManager.getCurrentState();
-
-    // Show final NPC text in speech bubble
-    if (this.speechBubble && state.npcPosition) {
-      this.speechBubble.showSpeech(finalText);
-      this.speechBubble.positionAboveCharacter(
-        state.npcPosition.x,
-        state.npcPosition.y,
-        this.config.gameHeight,
-      );
-    }
-
-    // Start NPC talking animation
-    if (state.npcId) {
-      const npc = this.npcManager.getNPCForDialogue(state.npcId);
-      if (npc) {
-        npc.startTalking();
-      }
-    }
-
-    // Calculate display time and end dialogue after that
-    const displayTime = this.calculateDialogueDisplayTime(finalText);
-    console.log(
-      `Showing final NPC response: "${finalText}" for ${displayTime}ms`,
-    );
-
-    setTimeout(() => {
-      // Stop NPC talking animation
-      if (state.npcId) {
-        const npc = this.npcManager.getNPCForDialogue(state.npcId);
-        if (npc) {
-          npc.stopTalking();
-        }
-      }
-
-      // End dialogue after final response
-      this.endDialogue();
     }, displayTime);
   }
 

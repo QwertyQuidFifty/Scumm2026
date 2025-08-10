@@ -12,7 +12,6 @@ export interface DialogueResponse {
   id: string;
   text: string;
   nextNodeId?: string; // null means end dialogue
-  npcFinalResponse?: string; // final NPC response before ending dialogue (when nextNodeId is undefined)
   conditions?: DialogueCondition[]; // conditions for this response to be available
   setFlag?: { key: string; value: boolean | string | number }; // flag to set when chosen
   removeItem?: string; // inventory item to remove when chosen
