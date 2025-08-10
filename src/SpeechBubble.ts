@@ -42,10 +42,19 @@ export class SpeechBubble extends Container {
     this.addChild(this.speechText);
   }
 
-  showSpeech(text: string, duration: number = 3000): void {
+  showSpeech(
+    text: string,
+    duration: number = 3000,
+    textColor: number = 0xffffff,
+  ): void {
     // Clear any existing timer
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
+    }
+
+    // Update text color if different from current
+    if (this.textStyle.fill !== textColor) {
+      this.textStyle.fill = textColor;
     }
 
     // Set the text

@@ -1169,6 +1169,33 @@ export class Game {
       this.dialogueUI.hideResponses();
     }
 
+    // Get the selected response text before processing
+    const currentNode = this.dialogueManager.getCurrentNode();
+    const selectedResponse = currentNode?.responses.find(
+      (r) => r.id === responseId,
+    );
+
+    if (selectedResponse && this.speechBubble && this.characterSprite) {
+      // Show player character saying their selected response (white text)
+      this.speechBubble.showSpeech(selectedResponse.text, 1500, 0xffffff); // White text, 1.5 seconds
+      this.speechBubble.positionAboveCharacter(
+        this.characterSprite.x,
+        this.characterSprite.y,
+        this.config.gameHeight,
+      );
+
+      // Wait for player speech to finish, then process the NPC response
+      setTimeout(() => {
+        this.processDialogueResponse(responseId);
+      }, 1500);
+    } else {
+      // Fallback if no response found - process immediately
+      this.processDialogueResponse(responseId);
+    }
+  }
+
+  // Process the actual dialogue response after player has spoken
+  private processDialogueResponse(responseId: string): void {
     // Get current inventory for condition checking
     const inventoryItems = this.inventorySystem?.getAllItems() || [];
     const inventorySet = new Set(inventoryItems.map((item) => item.id));
@@ -1180,7 +1207,7 @@ export class Game {
     );
 
     if (nextNode) {
-      // Continue dialogue with next node
+      // Continue dialogue with next node (NPC response)
       this.showDialogueNode(nextNode);
     } else {
       // No next node - end dialogue immediately
@@ -1222,9 +1249,9 @@ export class Game {
     // Calculate display time based on text length
     const displayTime = this.calculateDialogueDisplayTime(node.npcText);
 
-    // Show NPC text in speech bubble with calculated display time
+    // Show NPC text in speech bubble with calculated display time (green text)
     if (this.speechBubble && state.npcPosition) {
-      this.speechBubble.showSpeech(node.npcText, displayTime);
+      this.speechBubble.showSpeech(node.npcText, displayTime, 0x00ff00); // Green text for NPCs
       this.speechBubble.positionAboveCharacter(
         state.npcPosition.x,
         state.npcPosition.y,
@@ -1273,13 +1300,13 @@ export class Game {
 
   // Calculate dialogue display time based on text length
   private calculateDialogueDisplayTime(text: string): number {
-    // Base time of 1 second, plus 50ms per character
-    const baseTime = 1000;
-    const timePerChar = 50;
+    // Base time of 0.8 seconds, plus 40ms per character (20% faster than before)
+    const baseTime = 800;
+    const timePerChar = 40;
     const calculatedTime = baseTime + text.length * timePerChar;
 
-    // Minimum 2 seconds, maximum 8 seconds
-    return Math.max(2000, Math.min(8000, calculatedTime));
+    // Minimum 1.6 seconds, maximum 6.4 seconds (20% faster than before)
+    return Math.max(1600, Math.min(6400, calculatedTime));
   }
 
   // End dialogue and restore normal game state
