@@ -59,7 +59,7 @@ export class CommandPanel {
       fontSize: 52, // Even larger font size without button boxes
       fill: 0xaa00ff, // bright purple (will be overridden per button)
       align: "center",
-      fontWeight: "bold"
+      fontWeight: "bold",
     });
   }
 
@@ -189,7 +189,7 @@ export class CommandPanel {
       fontSize: 34,
       fill: textColor,
       align: "center",
-      fontWeight: "bold"
+      fontWeight: "bold",
     });
   }
 

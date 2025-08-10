@@ -104,14 +104,14 @@ export class DialogueManager {
   }
 
   // Get available response options (filtered by conditions)
-  getAvailableResponses(): DialogueResponse[] {
+  getAvailableResponses(inventory?: Set<string>): DialogueResponse[] {
     const currentNode = this.getCurrentNode();
     if (!currentNode) {
       return [];
     }
 
     return currentNode.responses.filter((response) =>
-      this.checkConditions(response.conditions),
+      this.checkConditions(response.conditions, inventory),
     );
   }
 
@@ -132,7 +132,7 @@ export class DialogueManager {
     }
 
     // Check response conditions
-    if (!this.checkConditions(response.conditions)) {
+    if (!this.checkConditions(response.conditions, inventory)) {
       console.error(`Response ${responseId} conditions not met`);
       return null;
     }
@@ -155,7 +155,7 @@ export class DialogueManager {
     // Move to next node or end dialogue
     if (response.nextNodeId) {
       const nextNode = this.currentState.currentTree.nodes[response.nextNodeId];
-      if (nextNode && this.checkConditions(nextNode.conditions)) {
+      if (nextNode && this.checkConditions(nextNode.conditions, inventory)) {
         this.currentState.currentNodeId = response.nextNodeId;
         console.log(`Moved to dialogue node: ${response.nextNodeId}`);
         return nextNode;
@@ -200,7 +200,10 @@ export class DialogueManager {
   }
 
   // Check if conditions are met
-  private checkConditions(conditions?: DialogueCondition[]): boolean {
+  private checkConditions(
+    conditions?: DialogueCondition[],
+    inventory?: Set<string>,
+  ): boolean {
     if (!conditions || conditions.length === 0) {
       return true; // No conditions = always available
     }
@@ -214,9 +217,10 @@ export class DialogueManager {
           const flagValue = this.getFlag(condition.key);
           return flagValue === condition.value;
         }
-        case "inventory":
-          // This would be checked by the caller passing inventory state
-          return true; // For now, assume inventory checks are handled externally
+        case "inventory": {
+          if (!condition.key || !inventory) return false;
+          return inventory.has(condition.key);
+        }
         default:
           return false;
       }

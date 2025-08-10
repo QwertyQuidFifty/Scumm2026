@@ -484,9 +484,10 @@ export class Game {
               nextNodeId: "maya_corpo_warning",
             },
             {
-              id: "ask_location",
-              text: "How long have you been working this corner?",
-              nextNodeId: "maya_street_life",
+              id: "ask_about_key",
+              text: "Is this your key I found on the ground over there?",
+              nextNodeId: "maya_key_response",
+              conditions: [{ type: "inventory", key: "golden-key" }],
             },
             {
               id: "not_buying",
@@ -597,6 +598,34 @@ export class Game {
         maya_trust_response: {
           id: "maya_trust_response",
           npcText: "Good. I'll be in touch when something comes up.",
+          responses: [], // No responses - dialogue ends after NPC speaks
+        },
+        maya_key_response: {
+          id: "maya_key_response",
+          npcText:
+            "Wait... that's mine! I dropped it when I was setting up this morning. Thanks for finding it - you're honest. I could use someone like you for special jobs.",
+          responses: [
+            {
+              id: "accept_trust",
+              text: "What kind of special jobs?",
+              nextNodeId: "maya_special_work",
+            },
+            {
+              id: "just_returning_key",
+              text: "Just glad I could help.",
+              nextNodeId: "maya_key_thanks",
+            },
+          ],
+        },
+        maya_special_work: {
+          id: "maya_special_work",
+          npcText:
+            "Data retrieval, corporate espionage... nothing too dangerous for someone with the right skills. Keep your ears open.",
+          responses: [], // No responses - dialogue ends after NPC speaks
+        },
+        maya_key_thanks: {
+          id: "maya_key_thanks",
+          npcText: "Honesty's rare in this city. I'll remember this favor.",
           responses: [], // No responses - dialogue ends after NPC speaks
         },
       },
@@ -1259,7 +1288,11 @@ export class Game {
 
     // Show response options after delay, or end dialogue if no responses
     setTimeout(() => {
-      const availableResponses = this.dialogueManager.getAvailableResponses();
+      // Get current inventory for condition checking
+      const inventoryItems = this.inventorySystem?.getAllItems() || [];
+      const inventorySet = new Set(inventoryItems.map((item) => item.id));
+      const availableResponses =
+        this.dialogueManager.getAvailableResponses(inventorySet);
 
       if (availableResponses.length === 0) {
         // No responses available - this is a final dialogue node, end the dialogue
