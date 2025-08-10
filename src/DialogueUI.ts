@@ -6,6 +6,7 @@ export class DialogueUI {
   private background: Graphics;
   private responseTexts: Text[] = [];
   private selectedIndex: number = -1;
+  private hoveredIndex: number = -1;
   private responses: DialogueResponse[] = [];
   private onResponseSelected?: (responseId: string) => void;
 
@@ -18,7 +19,7 @@ export class DialogueUI {
   private readonly textColor = 0xffffff;
   private readonly selectedTextColor = 0xffff00;
 
-  constructor(gameWidth: number, gameHeight: number) {
+  constructor(_gameWidth: number, gameHeight: number) {
     this.container = new Container();
 
     // Create background
@@ -39,7 +40,7 @@ export class DialogueUI {
   // Show dialogue responses
   showResponses(responses: DialogueResponse[]): void {
     this.responses = responses;
-    this.selectedIndex = 0; // Default to first option
+    this.selectedIndex = -1; // No default selection\n    this.hoveredIndex = -1; // No default hover
 
     this.clearResponseTexts();
     this.createResponseTexts();
@@ -57,6 +58,15 @@ export class DialogueUI {
     this.responses = [];
     this.selectedIndex = -1;
     console.log("Dialogue UI hidden");
+  }
+
+  // Hide response options but keep the dialogue UI container visible
+  hideResponses(): void {
+    this.clearResponseTexts();
+    this.responses = [];
+    this.selectedIndex = -1;
+    this.hoveredIndex = -1;
+    console.log("Dialogue response options hidden");
   }
 
   // Set response selection callback
@@ -101,7 +111,7 @@ export class DialogueUI {
   }
 
   // Handle mouse click on response
-  handleClick(x: number, y: number): boolean {
+  handleClick(_x: number, y: number): boolean {
     if (!this.container.visible) {
       return false;
     }
@@ -143,14 +153,36 @@ export class DialogueUI {
   private createResponseTexts(): void {
     const textStyle: Partial<TextStyle> = {
       fontFamily: "monospace",
-      fontSize: 14,
+      fontSize: 24, // Increased from 14 to 24 (10 sizes larger)
       fill: this.textColor,
     };
 
     this.responses.forEach((response, index) => {
       const text = new Text(`${index + 1}. ${response.text}`, textStyle);
-      text.x = this.padding;
+      text.x = this.padding + 20; // Shifted 20px to the right
       text.y = this.padding + index * this.responseHeight;
+
+      // Enable interactive events for hover
+      text.eventMode = "static";
+      text.cursor = "pointer";
+
+      // Add hover event listeners
+      text.on("pointerenter", () => {
+        this.hoveredIndex = index;
+        this.updateSelection();
+      });
+
+      text.on("pointerleave", () => {
+        this.hoveredIndex = -1;
+        this.updateSelection();
+      });
+
+      // Add click event listener
+      text.on("pointerdown", () => {
+        this.selectedIndex = index;
+        this.updateSelection();
+        this.selectCurrentResponse();
+      });
 
       this.container.addChild(text);
       this.responseTexts.push(text);
@@ -178,25 +210,26 @@ export class DialogueUI {
   }
 
   private updateSelection(): void {
+    // Remove old selection background
+    const oldSelection = this.container.getChildByName("selection");
+    if (oldSelection) {
+      this.container.removeChild(oldSelection);
+    }
+
     this.responseTexts.forEach((text, index) => {
-      if (index === this.selectedIndex) {
+      if (index === this.hoveredIndex) {
+        // Yellow highlight on hover
         text.style.fill = this.selectedTextColor;
 
-        // Draw selection background
+        // Draw hover background
         const selectionBg = new Graphics();
-        selectionBg.beginFill(this.selectedColor, 0.5);
+        selectionBg.beginFill(this.selectedColor, 0.3);
         selectionBg.drawRect(
-          this.padding - 5,
+          this.padding + 15, // Adjusted for right shift
           this.padding + index * this.responseHeight - 2,
-          1024 - this.padding * 2 + 10,
+          1024 - this.padding * 2 - 10,
           this.responseHeight,
         );
-
-        // Remove old selection background
-        const oldSelection = this.container.getChildByName("selection");
-        if (oldSelection) {
-          this.container.removeChild(oldSelection);
-        }
 
         selectionBg.name = "selection";
         this.container.addChildAt(selectionBg, 1); // Add after background
@@ -211,6 +244,7 @@ export class DialogueUI {
 
     if (newIndex >= 0 && newIndex < this.responses.length) {
       this.selectedIndex = newIndex;
+      this.hoveredIndex = newIndex; // Update hover to match selection
       this.updateSelection();
       console.log(`Selected dialogue option ${this.selectedIndex + 1}`);
     }
@@ -219,6 +253,7 @@ export class DialogueUI {
   private selectResponseByIndex(index: number): void {
     if (index >= 0 && index < this.responses.length) {
       this.selectedIndex = index;
+      this.hoveredIndex = index; // Update hover to match selection
       this.updateSelection();
       this.selectCurrentResponse();
     }

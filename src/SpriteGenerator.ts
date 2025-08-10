@@ -12,7 +12,7 @@ export interface CharacterSprites {
 }
 
 export class SpriteGenerator {
-  private readonly colorPalette: Record<string, number> = {
+  private colorPalette: Record<string, number> = {
     "0": 0x000000, // transparent (actually we'll skip these pixels)
     "3": 0x2a2a2a, // dark grey - shoes
     "4": 0x4a4a4a, // medium grey - pants

@@ -33,7 +33,7 @@ export class InventorySystem {
   private slotHeight: number = 90; // 50% larger than 60
   private slotSpacing: number = 8;
   private slotsPerRow: number = 2;
-  private textStyle: TextStyle;
+  private textStyle!: TextStyle;
   private onSlotClick?: (slotIndex: number, item?: InventoryItem) => void;
   private onSlotHover?: (slotIndex: number, item?: InventoryItem) => void;
   private onSlotHoverExit?: () => void;

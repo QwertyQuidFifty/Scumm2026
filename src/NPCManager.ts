@@ -318,11 +318,9 @@ export class NPCManager {
 
   // Stop all NPC movement
   stopAllMovement(): void {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    for (const npc of this.npcs.values()) {
-      // NPCs will naturally stop at their current position on next update
-      // We could add a forceStop method to NPC if needed
-    }
+    // NPCs will naturally stop at their current position on next update
+    // We could add a forceStop method to NPC if needed
+    // Currently no action needed as NPCs stop automatically
   }
 
   // Move random NPC to a random valid position (for testing/demo purposes)

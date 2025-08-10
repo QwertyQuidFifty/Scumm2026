@@ -79,11 +79,7 @@ export class Game {
     this.objectManager = new ObjectManager();
     this.actionResponseSystem = new ActionResponseSystem();
     this.npcManager = new NPCManager();
-    this.stageManager = new StageManager(
-      this.assetManager,
-      this.objectManager,
-      this.gameAreaWidth,
-    );
+    this.stageManager = new StageManager(this.assetManager, this.objectManager);
     this.stageManager.setNPCManager(this.npcManager);
     this.perspectiveScaler = new PerspectiveScaler();
     this.dialogueManager = new DialogueManager();
@@ -236,7 +232,7 @@ export class Game {
 
   private setupCharacter(): void {
     // Create character sprite with idle animation initially
-    this.characterSprite = new Sprite(this.characterSprites.idle);
+    this.characterSprite = new Sprite(this.characterSprites!.idle);
 
     // Set anchor to bottom center (0.5, 1.0) so sprite aligns naturally to ground
     this.characterSprite.anchor.set(0.5, 1.0);
@@ -263,7 +259,7 @@ export class Game {
     // Initialize character controller
     this.characterController = new CharacterController(
       this.characterSprite,
-      this.characterSprites,
+      this.characterSprites!,
     );
 
     // Set up depth manager callback for character movement
@@ -343,6 +339,8 @@ export class Game {
               id: "leave",
               text: "Just looking around, thanks.",
               nextNodeId: undefined, // End dialogue
+              npcFinalResponse:
+                "Suit yourself. Come back when you need a real drink.",
             },
           ],
         },
@@ -378,6 +376,8 @@ export class Game {
               text: "Here's your credits.",
               nextNodeId: undefined, // End dialogue
               conditions: [{ type: "always" }], // Could check for credits item
+              npcFinalResponse:
+                "Pleasure doing business. Watch your back out there.",
             },
             {
               id: "no_money",
@@ -400,6 +400,8 @@ export class Game {
               id: "thanks_advice",
               text: "Thanks for the advice.",
               nextNodeId: undefined,
+              npcFinalResponse:
+                "Don't mention it. Stay safe out there, friend.",
             },
           ],
         },
@@ -493,6 +495,8 @@ export class Game {
               id: "not_buying",
               text: "Just browsing, thanks.",
               nextNodeId: undefined,
+              npcFinalResponse:
+                "No problem. Come back if you change your mind about that tech.",
             },
           ],
         },
@@ -586,6 +590,8 @@ export class Game {
               text: "I'll remember that.",
               nextNodeId: undefined,
               setFlag: { key: "maya_trusts_player", value: true },
+              npcFinalResponse:
+                "Good. I'll be in touch when something comes up.",
             },
           ],
         },
@@ -774,7 +780,10 @@ export class Game {
       );
 
       // Execute the default action on NPC
-      this.executeDefaultNPCAction(clickedNPC.getDefaultAction(), clickedNPC);
+      this.executeDefaultNPCAction(
+        clickedNPC.getDefaultAction() as ActionType,
+        clickedNPC,
+      );
     } else if (clickedObject && this.characterController) {
       console.log(
         `Right-clicked on object: ${clickedObject.name} with default action: ${clickedObject.defaultAction}`,
@@ -844,29 +853,7 @@ export class Game {
       return;
     }
 
-    if (key === "1") {
-      // Test dialogue with Jake the Bartender
-      const jake = this.npcManager.getNPCForDialogue("bartender");
-      if (jake) {
-        this.handleNPCInteraction(jake, "talk");
-        console.log("Testing dialogue with Jake");
-      } else {
-        console.log("Jake not found");
-      }
-      return;
-    }
-
-    if (key === "2") {
-      // Test dialogue with Maya
-      const maya = this.npcManager.getNPCForDialogue("street-vendor");
-      if (maya) {
-        this.handleNPCInteraction(maya, "talk");
-        console.log("Testing dialogue with Maya");
-      } else {
-        console.log("Maya not found");
-      }
-      return;
-    }
+    // Removed number key shortcuts (1, 2) as they conflict with dialogue response selection
 
     if (key === "d") {
       // Debug: Show all dialogue flags
@@ -925,7 +912,7 @@ export class Game {
       if (hoveredNPC) {
         // Handle NPC hover
         this.commandPanel.setDefaultActionHighlight(
-          hoveredNPC.getDefaultAction(),
+          hoveredNPC.getDefaultAction() as ActionType,
         );
 
         // If we have a selected inventory item, append the NPC name to "Use X with"
@@ -1146,6 +1133,17 @@ export class Game {
       return;
     }
 
+    // Hide current response options immediately
+    if (this.dialogueUI) {
+      this.dialogueUI.hideResponses();
+    }
+
+    // Get current node and selected response BEFORE processing
+    const currentNode = this.dialogueManager.getCurrentNode();
+    const selectedResponse = currentNode?.responses.find(
+      (r) => r.id === responseId,
+    );
+
     // Get current inventory for condition checking
     const inventoryItems = this.inventorySystem?.getAllItems() || [];
     const inventorySet = new Set(inventoryItems.map((item) => item.id));
@@ -1160,7 +1158,14 @@ export class Game {
       // Continue dialogue with next node
       this.showDialogueNode(nextNode);
     } else {
-      // End dialogue
+      // Check if there's a final NPC response before ending
+      if (selectedResponse?.npcFinalResponse) {
+        // Show final NPC response before ending dialogue
+        this.showFinalNPCResponse(selectedResponse.npcFinalResponse);
+        return;
+      }
+
+      // End dialogue immediately if no final response
       this.endDialogue();
     }
   }
@@ -1203,10 +1208,53 @@ export class Game {
       );
     }
 
-    // Show response options
-    const availableResponses = this.dialogueManager.getAvailableResponses();
-    if (this.dialogueUI) {
-      this.dialogueUI.showResponses(availableResponses);
+    // Start NPC talking animation
+    if (state.npcId) {
+      const npc = this.npcManager.getNPCForDialogue(state.npcId);
+      if (npc) {
+        npc.startTalking();
+      }
+    }
+
+    // Calculate display time based on text length
+    const displayTime = this.calculateDialogueDisplayTime(node.npcText);
+
+    console.log(`Showing dialogue: "${node.npcText}" for ${displayTime}ms`);
+
+    // Show response options after delay
+    setTimeout(() => {
+      const availableResponses = this.dialogueManager.getAvailableResponses();
+      if (this.dialogueUI && this.dialogueManager.isDialogueActive()) {
+        // Hide speech bubble and show response options simultaneously
+        if (this.speechBubble) {
+          this.speechBubble.hideSpeech();
+        }
+        this.dialogueUI.showResponses(availableResponses);
+        console.log(`Showing ${availableResponses.length} response options`);
+      }
+
+      // Stop NPC talking animation
+      if (state.npcId) {
+        const npc = this.npcManager.getNPCForDialogue(state.npcId);
+        if (npc) {
+          npc.stopTalking();
+        }
+      }
+    }, displayTime);
+  }
+
+  // Show final NPC response before ending dialogue
+  private showFinalNPCResponse(finalText: string): void {
+    const state = this.dialogueManager.getCurrentState();
+
+    // Show final NPC text in speech bubble
+    if (this.speechBubble && state.npcPosition) {
+      this.speechBubble.showSpeech(finalText);
+      this.speechBubble.positionAboveCharacter(
+        state.npcPosition.x,
+        state.npcPosition.y,
+        this.config.gameHeight,
+      );
     }
 
     // Start NPC talking animation
@@ -1217,9 +1265,35 @@ export class Game {
       }
     }
 
+    // Calculate display time and end dialogue after that
+    const displayTime = this.calculateDialogueDisplayTime(finalText);
     console.log(
-      `Showing dialogue: "${node.npcText}" with ${availableResponses.length} responses`,
+      `Showing final NPC response: "${finalText}" for ${displayTime}ms`,
     );
+
+    setTimeout(() => {
+      // Stop NPC talking animation
+      if (state.npcId) {
+        const npc = this.npcManager.getNPCForDialogue(state.npcId);
+        if (npc) {
+          npc.stopTalking();
+        }
+      }
+
+      // End dialogue after final response
+      this.endDialogue();
+    }, displayTime);
+  }
+
+  // Calculate dialogue display time based on text length
+  private calculateDialogueDisplayTime(text: string): number {
+    // Base time of 1 second, plus 50ms per character
+    const baseTime = 1000;
+    const timePerChar = 50;
+    const calculatedTime = baseTime + text.length * timePerChar;
+
+    // Minimum 2 seconds, maximum 8 seconds
+    return Math.max(2000, Math.min(8000, calculatedTime));
   }
 
   // End dialogue and restore normal game state
@@ -1279,7 +1353,7 @@ export class Game {
 
       if (success) {
         // Remove visual sprite from scene using stage manager
-        this.stageManager.removeKeySprite(this.app.stage);
+        this.stageManager.removeKeySprite();
 
         // Remove interactive object from object manager
         this.objectManager.removeObject("golden-key");

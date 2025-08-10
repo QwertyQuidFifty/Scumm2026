@@ -19,12 +19,7 @@ export class StageManager {
   private depthManager?: DepthManager;
   // Track objects that have been permanently removed from stages
   private removedObjects: Map<string, Set<string>> = new Map(); // stageId -> Set<objectId>
-  constructor(
-    assetManager: AssetManager,
-    objectManager: ObjectManager,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    gameAreaWidth: number = 1024,
-  ) {
+  constructor(assetManager: AssetManager, objectManager: ObjectManager) {
     this.assetManager = assetManager;
     this.objectManager = objectManager;
     this.stageContainer = new Container();

@@ -129,7 +129,7 @@ export class InputManager {
       tagName === "input" ||
       tagName === "textarea" ||
       tagName === "select" ||
-      activeElement.contentEditable === "true"
+      (activeElement as HTMLElement).contentEditable === "true"
     );
   }
 

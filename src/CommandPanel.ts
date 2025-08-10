@@ -26,7 +26,7 @@ export class CommandPanel {
   private buttonHeight: number = 60; // 50% larger than 40
   private buttonSpacing: number = 8;
   private buttonsPerRow: number = 2;
-  private textStyle: TextStyle;
+  private textStyle!: TextStyle;
   private onActionChange?: (action: ActionType) => void;
   private isDisabled: boolean = false;
 

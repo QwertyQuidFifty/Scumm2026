@@ -1,8 +1,8 @@
 import { Container, Text, TextStyle } from "pixi.js";
 
 export class SpeechBubble extends Container {
-  private speechText: Text;
-  private textStyle: TextStyle;
+  private speechText!: Text;
+  private textStyle!: TextStyle;
   private isVisible: boolean = false;
   private hideTimer?: number;
 

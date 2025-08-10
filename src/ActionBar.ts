@@ -2,9 +2,9 @@ import { Container, Graphics, Text, TextStyle } from "pixi.js";
 
 export class ActionBar {
   private container: Container;
-  private background: Graphics;
-  private text: Text;
-  private textStyle: TextStyle;
+  private background!: Graphics;
+  private text!: Text;
+  private textStyle!: TextStyle;
   private width: number;
   private height: number = 40; // Reduced height for better space utilization
   private currentAction: string = "Walk";
