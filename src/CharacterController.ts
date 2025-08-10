@@ -112,14 +112,14 @@ export class CharacterController {
     const startY = this.sprite.y;
     const deltaX = targetX - startX;
     const deltaY = targetY - startY;
-    
+
     // Calculate time needed for each axis at their respective speeds
     const xSpeed = this.moveSpeed; // Normal speed for X
     const ySpeed = this.moveSpeed * this.yMovementFactor; // Reduced speed for Y
-    
+
     const xTime = Math.abs(deltaX) / xSpeed;
     const yTime = Math.abs(deltaY) / ySpeed;
-    
+
     // Use the longer time so both axes complete simultaneously
     const duration = Math.max(xTime, yTime);
 

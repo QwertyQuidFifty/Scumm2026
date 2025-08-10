@@ -28,11 +28,13 @@ export class CommandPanel {
   private buttonsPerRow: number = 2;
   private textStyle: TextStyle;
   private onActionChange?: (action: ActionType) => void;
+  private isDisabled: boolean = false;
 
   private textColors = {
     normal: 0xaa00ff, // bright purple
     hover: 0xff69b4, // hot pink
     selected: 0xffffff, // white
+    disabled: 0x666666, // grey for disabled state
   };
 
   private actions: ActionType[] = [
@@ -151,6 +153,12 @@ export class CommandPanel {
   ): void {
     event.stopPropagation();
     event.preventDefault();
+
+    // Ignore clicks when disabled
+    if (this.isDisabled) {
+      return;
+    }
+
     this.setSelectedAction(button.action);
 
     if (this.onActionChange) {
@@ -161,9 +169,11 @@ export class CommandPanel {
   }
 
   private updateButtonVisuals(button: CommandButton): void {
-    // Update text color based on button state (selected takes priority)
+    // Update text color based on button state (disabled takes priority)
     let textColor;
-    if (button.isSelected) {
+    if (this.isDisabled) {
+      textColor = this.textColors.disabled; // Grey for disabled
+    } else if (button.isSelected) {
       textColor = this.textColors.selected; // White for selected
     } else if (button.isDefaultHighlighted) {
       textColor = this.textColors.hover; // Hot pink for default action highlighting
@@ -249,6 +259,23 @@ export class CommandPanel {
   getHeight(): number {
     const rows = Math.ceil(this.actions.length / this.buttonsPerRow);
     return rows * this.buttonHeight + (rows - 1) * this.buttonSpacing;
+  }
+
+  // Enable/disable UI functionality
+  setDisabled(disabled: boolean): void {
+    this.isDisabled = disabled;
+
+    // Update cursor and interactivity for all buttons
+    for (const button of this.buttons.values()) {
+      button.container.cursor = disabled ? "default" : "pointer";
+      this.updateButtonVisuals(button);
+    }
+
+    console.log(`CommandPanel ${disabled ? "disabled" : "enabled"}`);
+  }
+
+  isDisabledState(): boolean {
+    return this.isDisabled;
   }
 
   destroy(): void {

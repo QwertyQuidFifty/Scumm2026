@@ -37,11 +37,13 @@ export class InventorySystem {
   private onSlotClick?: (slotIndex: number, item?: InventoryItem) => void;
   private onSlotHover?: (slotIndex: number, item?: InventoryItem) => void;
   private onSlotHoverExit?: () => void;
+  private isDisabled: boolean = false;
 
   private slotColors = {
     empty: {
       normal: 0x222222, // Darker consistent color for all slots (#222)
       hover: 0x333333, // Slightly lighter on hover (#333)
+      disabled: 0x111111, // Even darker when disabled
       border: 0x666666, // Not used anymore
     },
   };
@@ -154,6 +156,11 @@ export class InventorySystem {
     event.stopPropagation();
     event.preventDefault();
 
+    // Ignore clicks when disabled
+    if (this.isDisabled) {
+      return;
+    }
+
     if (this.onSlotClick) {
       this.onSlotClick(slot.slotIndex, slot.item);
     }
@@ -168,10 +175,15 @@ export class InventorySystem {
     const bg = slot.background;
     bg.clear();
 
-    // All slots get the same background color - filled or empty
-    const backgroundColor = slot.isHovered
-      ? this.slotColors.empty.hover
-      : this.slotColors.empty.normal;
+    // Determine background color based on state
+    let backgroundColor;
+    if (this.isDisabled) {
+      backgroundColor = this.slotColors.empty.disabled;
+    } else {
+      backgroundColor = slot.isHovered
+        ? this.slotColors.empty.hover
+        : this.slotColors.empty.normal;
+    }
 
     bg.rect(0, 0, this.slotWidth, this.slotHeight).fill(backgroundColor);
 
@@ -179,6 +191,9 @@ export class InventorySystem {
       // Show item icon on top of background
       slot.text.text = slot.item.icon;
       slot.text.visible = true;
+
+      // Dim text when disabled
+      slot.text.alpha = this.isDisabled ? 0.4 : 1.0;
     } else {
       // Hide text for empty slots
       slot.text.text = "";
@@ -278,6 +293,23 @@ export class InventorySystem {
   getHeight(): number {
     const rows = Math.ceil(this.maxSlots / this.slotsPerRow);
     return rows * this.slotHeight + (rows - 1) * this.slotSpacing;
+  }
+
+  // Enable/disable UI functionality
+  setDisabled(disabled: boolean): void {
+    this.isDisabled = disabled;
+
+    // Update cursor and visuals for all slots
+    for (const slot of this.slots) {
+      slot.container.cursor = disabled ? "default" : "pointer";
+      this.updateSlotVisuals(slot);
+    }
+
+    console.log(`InventorySystem ${disabled ? "disabled" : "enabled"}`);
+  }
+
+  isDisabledState(): boolean {
+    return this.isDisabled;
   }
 
   destroy(): void {

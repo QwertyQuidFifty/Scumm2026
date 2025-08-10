@@ -23,7 +23,7 @@ export class SpriteGenerator {
   };
 
   private readonly spriteWidth = 16; // Original dimensions
-  private readonly spriteHeight = 24; // Original dimensions  
+  private readonly spriteHeight = 24; // Original dimensions
   private readonly pixelScale = 3; // Scale factor for each pixel (3x3 blocks)
 
   // Character sprite frames as 16-character strings representing pixel rows
@@ -173,12 +173,14 @@ export class SpriteGenerator {
 
         const color = this.colorPalette[colorKey] || 0x000000;
         // Render each pixel as a pixelScale x pixelScale block
-        graphics.rect(
-          x * this.pixelScale, 
-          y * this.pixelScale, 
-          this.pixelScale, 
-          this.pixelScale
-        ).fill(color);
+        graphics
+          .rect(
+            x * this.pixelScale,
+            y * this.pixelScale,
+            this.pixelScale,
+            this.pixelScale,
+          )
+          .fill(color);
       }
     }
 
@@ -212,22 +214,25 @@ export class SpriteGenerator {
   }
 
   // Generate NPC sprites with different color palettes for variety
-  generateNPCSpritesWithRenderer(renderer: Renderer, npcType: string = "basic"): CharacterSprites {
+  generateNPCSpritesWithRenderer(
+    renderer: Renderer,
+    npcType: string = "basic",
+  ): CharacterSprites {
     const originalPalette = { ...this.colorPalette };
-    
+
     // Set NPC-specific color palette
     this.setNPCColorPalette(npcType);
-    
+
     // Generate sprites with NPC palette
     const sprites: Partial<CharacterSprites> = {};
     for (const frame of this.characterFrames) {
       const texture = this.generateTextureWithRenderer(frame.data, renderer);
       sprites[frame.name as keyof CharacterSprites] = texture;
     }
-    
+
     // Restore original palette
     this.colorPalette = originalPalette;
-    
+
     return sprites as CharacterSprites;
   }
 
@@ -241,7 +246,7 @@ export class SpriteGenerator {
           "4": 0x2d2d2d, // dark grey pants
           "5": 0x4a4a4a, // belt/details
           "6": 0x654321, // brown hair outline
-          "7": 0x8B4513, // dark brown hair
+          "7": 0x8b4513, // dark brown hair
           "8": 0xfdbcb4, // slightly different skin tone
         };
         break;

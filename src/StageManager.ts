@@ -1,5 +1,5 @@
 import { Sprite, Container } from "pixi.js";
-import { Stage, StageTransition, PerspectiveScale } from "./Stage";
+import { Stage, StageTransition } from "./Stage";
 import { AssetManager } from "./AssetManager";
 import { ObjectManager } from "./ObjectManager";
 import { KeySprite } from "./KeySprite";
@@ -22,6 +22,7 @@ export class StageManager {
   constructor(
     assetManager: AssetManager,
     objectManager: ObjectManager,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     gameAreaWidth: number = 1024,
   ) {
     this.assetManager = assetManager;
@@ -151,24 +152,34 @@ export class StageManager {
       npcs: [
         {
           id: "bartender",
-          name: "Jake the Bartender", 
+          name: "Jake the Bartender",
           position: { x: 750, y: 630 }, // Near the bar area
-          description: "A gruff bartender with cybernetic implants. He's seen it all.",
-          dialogues: ["What'll it be?", "This city's going to hell.", "Keep your credits ready."],
+          description:
+            "A gruff bartender with cybernetic implants. He's seen it all.",
+          dialogues: [
+            "What'll it be?",
+            "This city's going to hell.",
+            "Keep your credits ready.",
+          ],
           defaultAction: "talk",
           spriteType: "bartender",
-          interactionPoint: { x: 720, y: 660 } // Stand in front of bar counter
+          interactionPoint: { x: 720, y: 660 }, // Stand in front of bar counter
         },
         {
           id: "street-vendor",
           name: "Maya",
           position: { x: 300, y: 680 }, // On the street
-          description: "A street vendor selling data chips and tech components.",
-          dialogues: ["Got some rare tech here.", "Don't trust the corpo suits.", "Credits first, questions later."],
-          defaultAction: "talk", 
+          description:
+            "A street vendor selling data chips and tech components.",
+          dialogues: [
+            "Got some rare tech here.",
+            "Don't trust the corpo suits.",
+            "Credits first, questions later.",
+          ],
+          defaultAction: "talk",
           spriteType: "customer",
-          interactionPoint: { x: 280, y: 710 } // Stand in front of vendor on street
-        }
+          interactionPoint: { x: 280, y: 710 }, // Stand in front of vendor on street
+        },
       ],
       characterStartPosition: { x: 400, y: 690 },
       keyPosition: { x: 500, y: 640 },
@@ -200,12 +211,12 @@ export class StageManager {
       backgroundWidth: 1024,
       backgroundHeight: 768,
       walkableArea: [
-        // Floor area of the mechstore 
+        // Floor area of the mechstore
         { x: 336, y: 613 },
         { x: 899, y: 613 },
         { x: 899, y: 772 },
         { x: 227, y: 772 },
-        { x: 336, y: 613 }
+        { x: 336, y: 613 },
       ],
       objects: [
         {
@@ -220,9 +231,9 @@ export class StageManager {
             { x: 856, y: 258 },
             { x: 923, y: 258 },
             { x: 923, y: 638 },
-            { x: 856, y: 599 }
+            { x: 856, y: 599 },
           ],
-        }
+        },
       ],
       characterStartPosition: { x: 863, y: 628 },
       interactionPoints: new Map([
@@ -230,7 +241,7 @@ export class StageManager {
       ]),
       perspectiveScale: {
         minY: 613, // At back of room
-        maxY: 772, // At front of room  
+        maxY: 772, // At front of room
         minScale: 260 / 72, // Fixed scale for 140px height (140 / sprite height 72)
         maxScale: 260 / 72, // Same scale throughout - no variation in small room
       },
@@ -246,17 +257,19 @@ export class StageManager {
       fromStageId: "cyberpunk-street",
       toStageId: "test-indoor",
       triggerObjectId: "building-entrance",
-      targetPosition: { x: 863, y: 628 } // Center of indoor room
+      targetPosition: { x: 863, y: 628 }, // Center of indoor room
     });
 
     this.addTransition({
       fromStageId: "test-indoor",
       toStageId: "cyberpunk-street",
       triggerObjectId: "exit-door",
-      targetPosition: { x: 104, y: 675 } // Near building entrance on street
+      targetPosition: { x: 104, y: 675 }, // Near building entrance on street
     });
 
-    console.log(`Initialized ${this.stages.size} stages and ${this.transitions.length} transitions`);
+    console.log(
+      `Initialized ${this.stages.size} stages and ${this.transitions.length} transitions`,
+    );
   }
 
   setNPCManager(npcManager: NPCManager): void {
@@ -275,25 +288,37 @@ export class StageManager {
     this.transitions.push(transition);
   }
 
-  findTransition(fromStageId: string, triggerObjectId: string): StageTransition | undefined {
+  findTransition(
+    fromStageId: string,
+    triggerObjectId: string,
+  ): StageTransition | undefined {
     return this.transitions.find(
-      t => t.fromStageId === fromStageId && t.triggerObjectId === triggerObjectId
+      (t) =>
+        t.fromStageId === fromStageId && t.triggerObjectId === triggerObjectId,
     );
   }
 
   async transitionToStage(
     toStageId: string,
     parentContainer: Container,
-    targetPosition?: { x: number; y: number }
-  ): Promise<{ success: boolean; stage?: Stage; characterPosition?: { x: number; y: number } }> {
+    targetPosition?: { x: number; y: number },
+  ): Promise<{
+    success: boolean;
+    stage?: Stage;
+    characterPosition?: { x: number; y: number };
+  }> {
     const targetStage = this.stages.get(toStageId);
     if (!targetStage) {
       console.error(`Target stage not found: ${toStageId}`);
       return { success: false };
     }
 
-    console.log(`Transitioning from ${this.currentStage?.name || 'unknown'} to ${targetStage.name}`);
-    console.log(`Target stage has ${targetStage.npcs?.length || 0} NPCs defined`);
+    console.log(
+      `Transitioning from ${this.currentStage?.name || "unknown"} to ${targetStage.name}`,
+    );
+    console.log(
+      `Target stage has ${targetStage.npcs?.length || 0} NPCs defined`,
+    );
 
     // Load the new stage
     const success = await this.loadStage(toStageId, parentContainer);
@@ -304,16 +329,19 @@ export class StageManager {
     console.log(`Stage transition completed, checking NPC container...`);
     if (this.npcManager) {
       const container = this.npcManager.getContainer();
-      console.log(`NPC container after transition: ${container.children.length} children, visible: ${container.visible}`);
+      console.log(
+        `NPC container after transition: ${container.children.length} children, visible: ${container.visible}`,
+      );
     }
 
     // Determine character position in new stage
-    const characterPosition = targetPosition || targetStage.characterStartPosition;
+    const characterPosition =
+      targetPosition || targetStage.characterStartPosition;
 
     return {
       success: true,
       stage: targetStage,
-      characterPosition
+      characterPosition,
     };
   }
 
@@ -358,13 +386,19 @@ export class StageManager {
     console.log(`About to load NPCs for stage: ${stage.name}`);
     if (stage.npcs && this.npcManager) {
       this.loadNPCs(stage);
-      
+
       // Debug NPC container after loading
       const npcContainer = this.npcManager.getContainer();
-      console.log(`After loading NPCs: container has ${npcContainer.children.length} children`);
-      console.log(`NPC container parent: ${npcContainer.parent?.constructor.name || 'none'}`);
+      console.log(
+        `After loading NPCs: container has ${npcContainer.children.length} children`,
+      );
+      console.log(
+        `NPC container parent: ${npcContainer.parent?.constructor.name || "none"}`,
+      );
     } else {
-      console.log(`Skipping NPC loading: stage.npcs=${!!stage.npcs}, this.npcManager=${!!this.npcManager}`);
+      console.log(
+        `Skipping NPC loading: stage.npcs=${!!stage.npcs}, this.npcManager=${!!this.npcManager}`,
+      );
     }
 
     this.currentStage = stage;
@@ -403,14 +437,16 @@ export class StageManager {
         "background",
         this.backgroundSprite,
         -1000, // Very low Y position to ensure it's always behind everything
-        "object"
+        "object",
       );
-      console.log("Registered background sprite with depth manager at Y position -1000");
+      console.log(
+        "Registered background sprite with depth manager at Y position -1000",
+      );
     } else {
       console.log("No depth manager available, using fallback rendering");
       // Fallback: add background to stage container if no depth manager
       this.stageContainer.addChild(this.backgroundSprite);
-      
+
       // Only add stage container to parent if it's not already added
       if (!this.stageContainer.parent) {
         parentContainer.addChild(this.stageContainer);
@@ -434,7 +470,9 @@ export class StageManager {
         this.objectManager.addObject(objectData);
         loadedCount++;
       } else {
-        console.log(`Skipping removed object: ${objectData.id} from stage: ${stage.name}`);
+        console.log(
+          `Skipping removed object: ${objectData.id} from stage: ${stage.name}`,
+        );
       }
     }
 
@@ -448,23 +486,27 @@ export class StageManager {
 
     // Don't load key sprite if the golden-key object has been removed from this stage
     if (this.isObjectRemoved(stage.id, "golden-key")) {
-      console.log(`Key sprite not loaded - golden-key has been removed from stage: ${stage.name}`);
+      console.log(
+        `Key sprite not loaded - golden-key has been removed from stage: ${stage.name}`,
+      );
       return;
     }
 
     this.keySprite = new KeySprite();
     this.keySprite.x = stage.keyPosition.x;
     this.keySprite.y = stage.keyPosition.y;
-    
+
     // Register key sprite with depth manager
     if (this.depthManager) {
       this.depthManager.registerSprite(
         "key-sprite",
         this.keySprite,
         stage.keyPosition.y,
-        "object"
+        "object",
       );
-      console.log(`Registered key sprite with depth manager at Y position ${stage.keyPosition.y}`);
+      console.log(
+        `Registered key sprite with depth manager at Y position ${stage.keyPosition.y}`,
+      );
     } else {
       parentContainer.addChild(this.keySprite);
     }
@@ -475,13 +517,22 @@ export class StageManager {
     console.log(`stage.npcs exists: ${!!stage.npcs}`);
     console.log(`stage.npcs length: ${stage.npcs?.length || 0}`);
     console.log(`this.npcManager exists: ${!!this.npcManager}`);
-    
+
     if (stage.npcs) {
-      console.log('NPCs in stage:', stage.npcs.map(npc => ({ id: npc.id, name: npc.name, spriteType: npc.spriteType })));
+      console.log(
+        "NPCs in stage:",
+        stage.npcs.map((npc) => ({
+          id: npc.id,
+          name: npc.name,
+          spriteType: npc.spriteType,
+        })),
+      );
     }
-    
+
     if (!stage.npcs || !this.npcManager) {
-      console.log(`No NPCs to load for stage: ${stage.name} (npcs: ${!!stage.npcs}, npcManager: ${!!this.npcManager})`);
+      console.log(
+        `No NPCs to load for stage: ${stage.name} (npcs: ${!!stage.npcs}, npcManager: ${!!this.npcManager})`,
+      );
       return;
     }
 
@@ -502,14 +553,18 @@ export class StageManager {
     // Add stage NPCs
     let loadedCount = 0;
     for (const npcData of stage.npcs) {
-      console.log(`Attempting to add NPC: ${npcData.name} (${npcData.id}) with sprite type: ${npcData.spriteType}`);
+      console.log(
+        `Attempting to add NPC: ${npcData.name} (${npcData.id}) with sprite type: ${npcData.spriteType}`,
+      );
       const success = this.npcManager.addNPC(npcData);
       if (success) {
         loadedCount++;
         console.log(`Successfully added NPC: ${npcData.name}`);
-        
+
         // Register NPC with depth manager
-        console.log(`loadNPCs: depthManager exists: ${!!this.depthManager} for NPC ${npcData.name}`);
+        console.log(
+          `loadNPCs: depthManager exists: ${!!this.depthManager} for NPC ${npcData.name}`,
+        );
         if (this.depthManager) {
           const npc = this.npcManager.getNPC(npcData.id);
           if (npc) {
@@ -517,11 +572,15 @@ export class StageManager {
               `npc-${npcData.id}`,
               npc.getSprite(),
               npcData.position.y,
-              "npc"
+              "npc",
             );
-            console.log(`Registered NPC ${npcData.name} with depth manager at Y position ${npcData.position.y}`);
+            console.log(
+              `Registered NPC ${npcData.name} with depth manager at Y position ${npcData.position.y}`,
+            );
           } else {
-            console.log(`Could not get NPC ${npcData.name} from NPCManager for depth registration`);
+            console.log(
+              `Could not get NPC ${npcData.name} from NPCManager for depth registration`,
+            );
           }
         } else {
           console.log(`No depth manager available for NPC ${npcData.name}`);
@@ -531,7 +590,9 @@ export class StageManager {
       }
     }
 
-    console.log(`Loaded ${loadedCount}/${stage.npcs.length} NPCs for stage: ${stage.name}`);
+    console.log(
+      `Loaded ${loadedCount}/${stage.npcs.length} NPCs for stage: ${stage.name}`,
+    );
 
     // Set walkable area for all NPCs
     this.npcManager.setWalkableArea(stage.walkableArea);
@@ -592,19 +653,19 @@ export class StageManager {
     return this.keySprite;
   }
 
-  // Method to remove key sprite (for pickup functionality)
-  removeKeySprite(parentContainer: Container): void {
+  // Method to remove key sprite (for pickup functionality)\n  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  removeKeySprite(): void {
     if (this.keySprite) {
       // Unregister from depth manager first
       if (this.depthManager) {
         this.depthManager.unregisterSprite("key-sprite");
       }
-      
+
       // Remove from container if it has a parent
       if (this.keySprite.parent) {
         this.keySprite.parent.removeChild(this.keySprite);
       }
-      
+
       this.keySprite.destroy();
       this.keySprite = undefined;
     }

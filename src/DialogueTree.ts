@@ -63,7 +63,9 @@ export class DialogueManager {
 
     const startNode = tree.nodes[tree.startNodeId];
     if (!startNode) {
-      console.error(`Start node ${tree.startNodeId} not found in dialogue tree for NPC: ${npcId}`);
+      console.error(
+        `Start node ${tree.startNodeId} not found in dialogue tree for NPC: ${npcId}`,
+      );
       return null;
     }
 
@@ -78,7 +80,7 @@ export class DialogueManager {
       currentTree: tree,
       currentNodeId: tree.startNodeId,
       npcId: npcId,
-      npcPosition: npcPosition
+      npcPosition: npcPosition,
     };
 
     console.log(`Started dialogue with ${npcId} at node ${tree.startNodeId}`);
@@ -87,11 +89,18 @@ export class DialogueManager {
 
   // Get current dialogue node
   getCurrentNode(): DialogueNode | null {
-    if (!this.currentState.isActive || !this.currentState.currentTree || !this.currentState.currentNodeId) {
+    if (
+      !this.currentState.isActive ||
+      !this.currentState.currentTree ||
+      !this.currentState.currentNodeId
+    ) {
       return null;
     }
 
-    return this.currentState.currentTree.nodes[this.currentState.currentNodeId] || null;
+    return (
+      this.currentState.currentTree.nodes[this.currentState.currentNodeId] ||
+      null
+    );
   }
 
   // Get available response options (filtered by conditions)
@@ -101,17 +110,22 @@ export class DialogueManager {
       return [];
     }
 
-    return currentNode.responses.filter(response => this.checkConditions(response.conditions));
+    return currentNode.responses.filter((response) =>
+      this.checkConditions(response.conditions),
+    );
   }
 
   // Choose a response and move to next node
-  chooseResponse(responseId: string, inventory: Set<string>): DialogueNode | null {
+  chooseResponse(
+    responseId: string,
+    inventory: Set<string>,
+  ): DialogueNode | null {
     const currentNode = this.getCurrentNode();
     if (!currentNode || !this.currentState.currentTree) {
       return null;
     }
 
-    const response = currentNode.responses.find(r => r.id === responseId);
+    const response = currentNode.responses.find((r) => r.id === responseId);
     if (!response) {
       console.error(`Response ${responseId} not found in current node`);
       return null;
@@ -146,7 +160,9 @@ export class DialogueManager {
         console.log(`Moved to dialogue node: ${response.nextNodeId}`);
         return nextNode;
       } else {
-        console.log(`Next node ${response.nextNodeId} not available, ending dialogue`);
+        console.log(
+          `Next node ${response.nextNodeId} not available, ending dialogue`,
+        );
         this.endDialogue();
         return null;
       }
@@ -189,14 +205,15 @@ export class DialogueManager {
       return true; // No conditions = always available
     }
 
-    return conditions.every(condition => {
+    return conditions.every((condition) => {
       switch (condition.type) {
         case "always":
           return true;
-        case "flag":
+        case "flag": {
           if (!condition.key) return false;
           const flagValue = this.getFlag(condition.key);
           return flagValue === condition.value;
+        }
         case "inventory":
           // This would be checked by the caller passing inventory state
           return true; // For now, assume inventory checks are handled externally

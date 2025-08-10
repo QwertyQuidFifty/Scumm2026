@@ -15,12 +15,12 @@ export class DialogueUI {
   private readonly backgroundColor = 0x000000;
   private readonly borderColor = 0x666666;
   private readonly selectedColor = 0x333333;
-  private readonly textColor = 0xFFFFFF;
-  private readonly selectedTextColor = 0xFFFF00;
+  private readonly textColor = 0xffffff;
+  private readonly selectedTextColor = 0xffff00;
 
   constructor(gameWidth: number, gameHeight: number) {
     this.container = new Container();
-    
+
     // Create background
     this.background = new Graphics();
     this.container.addChild(this.background);
@@ -31,19 +31,21 @@ export class DialogueUI {
     this.container.y = gameHeight - uiHeight - 40; // 40px above for action bar
     this.container.visible = false;
 
-    console.log(`DialogueUI positioned at y=${this.container.y}, height=${uiHeight}`);
+    console.log(
+      `DialogueUI positioned at y=${this.container.y}, height=${uiHeight}`,
+    );
   }
 
   // Show dialogue responses
   showResponses(responses: DialogueResponse[]): void {
     this.responses = responses;
     this.selectedIndex = 0; // Default to first option
-    
+
     this.clearResponseTexts();
     this.createResponseTexts();
     this.updateBackground();
     this.updateSelection();
-    
+
     this.container.visible = true;
     console.log(`Showing ${responses.length} dialogue responses`);
   }
@@ -106,8 +108,10 @@ export class DialogueUI {
 
     // Convert to local coordinates
     const localY = y - this.container.y;
-    const responseIndex = Math.floor((localY - this.padding) / this.responseHeight);
-    
+    const responseIndex = Math.floor(
+      (localY - this.padding) / this.responseHeight,
+    );
+
     if (responseIndex >= 0 && responseIndex < this.responses.length) {
       this.selectedIndex = responseIndex;
       this.updateSelection();
@@ -129,7 +133,7 @@ export class DialogueUI {
   }
 
   private clearResponseTexts(): void {
-    this.responseTexts.forEach(text => {
+    this.responseTexts.forEach((text) => {
       this.container.removeChild(text);
       text.destroy();
     });
@@ -147,7 +151,7 @@ export class DialogueUI {
       const text = new Text(`${index + 1}. ${response.text}`, textStyle);
       text.x = this.padding;
       text.y = this.padding + index * this.responseHeight;
-      
+
       this.container.addChild(text);
       this.responseTexts.push(text);
     });
@@ -155,18 +159,21 @@ export class DialogueUI {
 
   private updateBackground(): void {
     const width = 1024; // Full game area width
-    const height = Math.max(this.responses.length * this.responseHeight + this.padding * 2, 60);
-    
+    const height = Math.max(
+      this.responses.length * this.responseHeight + this.padding * 2,
+      60,
+    );
+
     this.background.clear();
-    
+
     // Draw background
     this.background.beginFill(this.backgroundColor, 0.9);
     this.background.drawRect(0, 0, width, height);
-    
+
     // Draw border
     this.background.lineStyle(1, this.borderColor);
     this.background.drawRect(0, 0, width, height);
-    
+
     console.log(`Updated dialogue background: ${width}x${height}`);
   }
 
@@ -174,7 +181,7 @@ export class DialogueUI {
     this.responseTexts.forEach((text, index) => {
       if (index === this.selectedIndex) {
         text.style.fill = this.selectedTextColor;
-        
+
         // Draw selection background
         const selectionBg = new Graphics();
         selectionBg.beginFill(this.selectedColor, 0.5);
@@ -182,18 +189,17 @@ export class DialogueUI {
           this.padding - 5,
           this.padding + index * this.responseHeight - 2,
           1024 - this.padding * 2 + 10,
-          this.responseHeight
+          this.responseHeight,
         );
-        
+
         // Remove old selection background
         const oldSelection = this.container.getChildByName("selection");
         if (oldSelection) {
           this.container.removeChild(oldSelection);
         }
-        
+
         selectionBg.name = "selection";
         this.container.addChildAt(selectionBg, 1); // Add after background
-        
       } else {
         text.style.fill = this.textColor;
       }
@@ -202,7 +208,7 @@ export class DialogueUI {
 
   private moveSelection(direction: number): void {
     const newIndex = this.selectedIndex + direction;
-    
+
     if (newIndex >= 0 && newIndex < this.responses.length) {
       this.selectedIndex = newIndex;
       this.updateSelection();
@@ -222,7 +228,7 @@ export class DialogueUI {
     if (this.selectedIndex >= 0 && this.selectedIndex < this.responses.length) {
       const selectedResponse = this.responses[this.selectedIndex];
       console.log(`Selected response: "${selectedResponse.text}"`);
-      
+
       if (this.onResponseSelected) {
         this.onResponseSelected(selectedResponse.id);
       }

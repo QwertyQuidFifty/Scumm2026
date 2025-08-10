@@ -43,13 +43,13 @@ export class NPC {
   constructor(data: NPCData, sprites: CharacterSprites) {
     this.data = data;
     this.sprites = sprites;
-    
+
     // Create sprite with idle animation initially
     this.sprite = new Sprite(sprites.idle);
-    
+
     // Set anchor to bottom center (0.5, 1.0) so sprite aligns naturally to ground
     this.sprite.anchor.set(0.5, 1.0);
-    
+
     // Position the sprite
     this.sprite.x = data.position.x;
     this.sprite.y = data.position.y;
@@ -70,7 +70,7 @@ export class NPC {
       frameDuration: 300, // 300ms per frame
       isWalking: false,
     };
-    
+
     // Debug sprite properties
     console.log(`NPC ${data.name} created:`, {
       x: this.sprite.x,
@@ -81,7 +81,7 @@ export class NPC {
       height: this.sprite.height,
       textureValid: !!sprites.idle,
       textureWidth: sprites.idle?.width,
-      textureHeight: sprites.idle?.height
+      textureHeight: sprites.idle?.height,
     });
   }
 
@@ -120,10 +120,12 @@ export class NPC {
   }
 
   getInteractionPoint(): Position {
-    return this.data.interactionPoint || { 
-      x: this.sprite.x, 
-      y: this.sprite.y + 30 // Default: stand slightly below NPC
-    };
+    return (
+      this.data.interactionPoint || {
+        x: this.sprite.x,
+        y: this.sprite.y + 30, // Default: stand slightly below NPC
+      }
+    );
   }
 
   // Get available dialogues
@@ -139,9 +141,12 @@ export class NPC {
     }
 
     const dialogue = dialogues[this.currentDialogueIndex];
-    this.currentDialogueIndex = (this.currentDialogueIndex + 1) % dialogues.length;
-    
-    console.log(`NPC ${this.data.name} dialogue: "${dialogue}" (${this.currentDialogueIndex}/${dialogues.length})`);
+    this.currentDialogueIndex =
+      (this.currentDialogueIndex + 1) % dialogues.length;
+
+    console.log(
+      `NPC ${this.data.name} dialogue: "${dialogue}" (${this.currentDialogueIndex}/${dialogues.length})`,
+    );
     return dialogue;
   }
 
@@ -154,7 +159,7 @@ export class NPC {
 
     const randomIndex = Math.floor(Math.random() * dialogues.length);
     const dialogue = dialogues[randomIndex];
-    
+
     console.log(`NPC ${this.data.name} random dialogue: "${dialogue}"`);
     return dialogue;
   }
@@ -173,7 +178,7 @@ export class NPC {
   getSpeechBubblePosition(): Position {
     return {
       x: this.sprite.x,
-      y: this.sprite.y - 60 // Position speech bubble above NPC
+      y: this.sprite.y - 60, // Position speech bubble above NPC
     };
   }
 
@@ -200,7 +205,9 @@ export class NPC {
   }
 
   // Set callback for position updates (for depth manager integration)
-  setPositionChangeCallback(callback: (npcId: string, position: Position) => void): void {
+  setPositionChangeCallback(
+    callback: (npcId: string, position: Position) => void,
+  ): void {
     this.onPositionChange = callback;
   }
 
@@ -235,7 +242,9 @@ export class NPC {
   moveTo(targetX: number, targetY: number): boolean {
     // Check if target position is walkable
     if (!this.isPositionWalkable(targetX, targetY)) {
-      console.log(`NPC ${this.data.name} cannot move to (${targetX}, ${targetY}) - position is not walkable`);
+      console.log(
+        `NPC ${this.data.name} cannot move to (${targetX}, ${targetY}) - position is not walkable`,
+      );
       return false;
     }
 
@@ -243,7 +252,10 @@ export class NPC {
     const currentX = this.sprite.x;
     const currentY = this.sprite.y;
     const threshold = 2; // 2 pixel threshold
-    if (Math.abs(currentX - targetX) < threshold && Math.abs(currentY - targetY) < threshold) {
+    if (
+      Math.abs(currentX - targetX) < threshold &&
+      Math.abs(currentY - targetY) < threshold
+    ) {
       return true;
     }
 
@@ -266,7 +278,9 @@ export class NPC {
     this.animationState.isWalking = true;
     this.animationState.frameStartTime = performance.now();
 
-    console.log(`NPC ${this.data.name} moving from (${currentX.toFixed(1)}, ${currentY.toFixed(1)}) to (${targetX}, ${targetY})`);
+    console.log(
+      `NPC ${this.data.name} moving from (${currentX.toFixed(1)}, ${currentY.toFixed(1)}) to (${targetX}, ${targetY})`,
+    );
     return true;
   }
 
@@ -288,10 +302,16 @@ export class NPC {
     const progress = Math.min(elapsed / this.movementState.duration, 1.0);
 
     // Linear interpolation
-    const x = this.movementState.startPosition.x + 
-              (this.movementState.targetPosition.x - this.movementState.startPosition.x) * progress;
-    const y = this.movementState.startPosition.y + 
-              (this.movementState.targetPosition.y - this.movementState.startPosition.y) * progress;
+    const x =
+      this.movementState.startPosition.x +
+      (this.movementState.targetPosition.x -
+        this.movementState.startPosition.x) *
+        progress;
+    const y =
+      this.movementState.startPosition.y +
+      (this.movementState.targetPosition.y -
+        this.movementState.startPosition.y) *
+        progress;
 
     // Update sprite position
     this.sprite.x = x;
@@ -312,14 +332,19 @@ export class NPC {
       this.animationState.isWalking = false;
       this.animationState.currentFrame = "idle";
       this.sprite.texture = this.sprites.idle;
-      console.log(`NPC ${this.data.name} arrived at (${this.sprite.x.toFixed(1)}, ${this.sprite.y.toFixed(1)})`);
+      console.log(
+        `NPC ${this.data.name} arrived at (${this.sprite.x.toFixed(1)}, ${this.sprite.y.toFixed(1)})`,
+      );
     }
   }
 
   private updateAnimation(currentTime: number): void {
     if (!this.animationState.isWalking) {
       // Make sure we're showing idle when not walking
-      if (this.animationState.currentFrame !== "idle" && this.animationState.currentFrame !== "talk") {
+      if (
+        this.animationState.currentFrame !== "idle" &&
+        this.animationState.currentFrame !== "talk"
+      ) {
         this.animationState.currentFrame = "idle";
         this.sprite.texture = this.sprites.idle;
       }
@@ -328,7 +353,7 @@ export class NPC {
 
     // Handle walking animation frames
     const elapsed = currentTime - this.animationState.frameStartTime;
-    
+
     if (elapsed >= this.animationState.frameDuration) {
       // Switch to next walking frame
       if (this.animationState.currentFrame === "walk1") {
@@ -338,7 +363,7 @@ export class NPC {
         this.animationState.currentFrame = "walk1";
         this.sprite.texture = this.sprites.walk1;
       }
-      
+
       this.animationState.frameStartTime = currentTime;
     }
   }
@@ -350,17 +375,19 @@ export class NPC {
       x: bounds.x,
       y: bounds.y,
       width: bounds.width,
-      height: bounds.height
+      height: bounds.height,
     };
   }
 
   // Check if a point is within the NPC's clickable area
   containsPoint(x: number, y: number): boolean {
     const bounds = this.getBounds();
-    return x >= bounds.x && 
-           x <= bounds.x + bounds.width && 
-           y >= bounds.y && 
-           y <= bounds.y + bounds.height;
+    return (
+      x >= bounds.x &&
+      x <= bounds.x + bounds.width &&
+      y >= bounds.y &&
+      y <= bounds.y + bounds.height
+    );
   }
 
   // Cleanup when NPC is removed

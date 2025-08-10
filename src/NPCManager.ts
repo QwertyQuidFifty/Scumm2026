@@ -16,7 +16,10 @@ export class NPCManager {
     this.npcContainer = new Container();
   }
 
-  setSpriteGenerator(spriteGenerator: SpriteGenerator, renderer: Renderer): void {
+  setSpriteGenerator(
+    spriteGenerator: SpriteGenerator,
+    renderer: Renderer,
+  ): void {
     this.spriteGenerator = spriteGenerator;
     this.renderer = renderer;
   }
@@ -30,32 +33,44 @@ export class NPCManager {
     this.spriteCache.set("basic", sprites);
   }
 
-  private getSpritesForType(spriteType: string = "basic"): CharacterSprites | undefined {
+  private getSpritesForType(
+    spriteType: string = "basic",
+  ): CharacterSprites | undefined {
     console.log(`Getting sprites for type: ${spriteType}`);
-    
+
     // Check if we already have these sprites cached
     if (this.spriteCache.has(spriteType)) {
       console.log(`Found cached sprites for type: ${spriteType}`);
       return this.spriteCache.get(spriteType);
     }
 
-    console.log(`No cached sprites for ${spriteType}, attempting to generate...`);
-    console.log(`Have spriteGenerator: ${!!this.spriteGenerator}, have renderer: ${!!this.renderer}`);
+    console.log(
+      `No cached sprites for ${spriteType}, attempting to generate...`,
+    );
+    console.log(
+      `Have spriteGenerator: ${!!this.spriteGenerator}, have renderer: ${!!this.renderer}`,
+    );
 
     // Generate new sprites if we have a sprite generator
     if (this.spriteGenerator && this.renderer) {
       console.log(`Generating sprites for NPC type: ${spriteType}`);
       try {
-        const sprites = this.spriteGenerator.generateNPCSpritesWithRenderer(this.renderer, spriteType);
+        const sprites = this.spriteGenerator.generateNPCSpritesWithRenderer(
+          this.renderer,
+          spriteType,
+        );
         console.log(`Successfully generated sprites for ${spriteType}:`, {
           idle: !!sprites.idle,
           walk1: !!sprites.walk1,
-          walk2: !!sprites.walk2
+          walk2: !!sprites.walk2,
         });
         this.spriteCache.set(spriteType, sprites);
         return sprites;
       } catch (error) {
-        console.error(`Failed to generate sprites for type ${spriteType}:`, error);
+        console.error(
+          `Failed to generate sprites for type ${spriteType}:`,
+          error,
+        );
       }
     }
 
@@ -75,29 +90,37 @@ export class NPCManager {
     // Get sprites for this NPC's type
     const sprites = this.getSpritesForType(npcData.spriteType);
     if (!sprites) {
-      console.error(`Could not get sprites for NPC ${npcData.id} with type ${npcData.spriteType}`);
+      console.error(
+        `Could not get sprites for NPC ${npcData.id} with type ${npcData.spriteType}`,
+      );
       return false;
     }
 
     // Create new NPC
     const npc = new NPC(npcData, sprites);
-    
+
     // Add to container
     this.npcContainer.addChild(npc.getSprite());
-    
+
     // Set up position change callback for depth manager integration
     npc.setPositionChangeCallback((npcId: string, position: Position) => {
       if (this.depthManager) {
         this.depthManager.updateSpritePosition(`npc-${npcId}`, position.y);
       }
     });
-    
+
     // Store in map
     this.npcs.set(npcData.id, npc);
-    
-    console.log(`Added NPC: ${npcData.name} at (${npcData.position.x}, ${npcData.position.y}) with sprite type: ${npcData.spriteType}`);
-    console.log(`NPC container now has ${this.npcContainer.children.length} children`);
-    console.log(`NPC sprite visible: ${npc.getSprite().visible}, alpha: ${npc.getSprite().alpha}`);
+
+    console.log(
+      `Added NPC: ${npcData.name} at (${npcData.position.x}, ${npcData.position.y}) with sprite type: ${npcData.spriteType}`,
+    );
+    console.log(
+      `NPC container now has ${this.npcContainer.children.length} children`,
+    );
+    console.log(
+      `NPC sprite visible: ${npc.getSprite().visible}, alpha: ${npc.getSprite().alpha}`,
+    );
     return true;
   }
 
@@ -110,10 +133,10 @@ export class NPCManager {
 
     // Remove from container and destroy
     npc.destroy();
-    
+
     // Remove from map
     this.npcs.delete(npcId);
-    
+
     console.log(`Removed NPC: ${npcId}`);
     return true;
   }
@@ -180,12 +203,12 @@ export class NPCManager {
     }
 
     npc.setPosition(position);
-    
+
     // Update depth manager with new Y position
     if (this.depthManager) {
       this.depthManager.updateSpritePosition(`npc-${npcId}`, position.y);
     }
-    
+
     return true;
   }
 
@@ -219,14 +242,19 @@ export class NPCManager {
   }
 
   // Get dialogue from a specific NPC
-  getNPCDialogue(npcId: string, useRandom: boolean = false): { dialogue: string | null; position: Position | null } {
+  getNPCDialogue(
+    npcId: string,
+    useRandom: boolean = false,
+  ): { dialogue: string | null; position: Position | null } {
     const npc = this.npcs.get(npcId);
     if (!npc) {
       console.warn(`NPC with id ${npcId} not found for dialogue`);
       return { dialogue: null, position: null };
     }
 
-    const dialogue = useRandom ? npc.getRandomDialogue() : npc.getNextDialogue();
+    const dialogue = useRandom
+      ? npc.getRandomDialogue()
+      : npc.getNextDialogue();
     const position = npc.getSpeechBubblePosition();
 
     return { dialogue, position };
@@ -285,11 +313,12 @@ export class NPCManager {
 
   // Get all moving NPCs
   getMovingNPCs(): NPC[] {
-    return Array.from(this.npcs.values()).filter(npc => npc.isMoving());
+    return Array.from(this.npcs.values()).filter((npc) => npc.isMoving());
   }
 
   // Stop all NPC movement
   stopAllMovement(): void {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for (const npc of this.npcs.values()) {
       // NPCs will naturally stop at their current position on next update
       // We could add a forceStop method to NPC if needed
@@ -302,7 +331,7 @@ export class NPCManager {
     if (npcArray.length === 0) return false;
 
     const randomNPC = npcArray[Math.floor(Math.random() * npcArray.length)];
-    
+
     // Generate a random position within reasonable bounds
     // This is a simple implementation - could be improved with proper walkable area sampling
     const currentPos = randomNPC.getPosition();
@@ -310,7 +339,9 @@ export class NPCManager {
     const targetX = currentPos.x + (Math.random() - 0.5) * randomOffset * 2;
     const targetY = currentPos.y + (Math.random() - 0.5) * randomOffset * 2;
 
-    console.log(`Moving random NPC ${randomNPC.getName()} to random position (${targetX.toFixed(1)}, ${targetY.toFixed(1)})`);
+    console.log(
+      `Moving random NPC ${randomNPC.getName()} to random position (${targetX.toFixed(1)}, ${targetY.toFixed(1)})`,
+    );
     return randomNPC.moveTo(targetX, targetY);
   }
 }
