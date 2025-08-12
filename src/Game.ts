@@ -752,32 +752,67 @@ export class Game {
         return;
       }
 
-      const currentAction = this.gameState.currentAction;
+      let actionToExecute = this.gameState.currentAction;
+
+      // SCUMM behavior: left-click on different object while locked defaults to Walk
+      if (this.pendingAction && this.actionBar?.isInteractionLocked()) {
+        console.log(
+          "Left-click on different object while locked: cancelling pending action and defaulting to Walk",
+        );
+        this.pendingAction = undefined;
+        actionToExecute = "walk";
+
+        // Revert action bar and game state to walk
+        if (this.actionBar) {
+          this.actionBar.unlockFromInteraction();
+          this.actionBar.revertColor();
+        }
+        this.revertToWalkAction();
+      }
+
       console.log(
-        `Clicked on object: ${clickedObject.name} with action: ${currentAction}`,
+        `Clicked on object: ${clickedObject.name} with action: ${actionToExecute}`,
       );
 
       // Move character to interaction point near the object for all actions
       const success = this.characterController.moveToObject(clickedObject);
 
       if (success) {
-        console.log(`Moving to ${currentAction} with: ${clickedObject.name}`);
+        console.log(`Moving to ${actionToExecute} with: ${clickedObject.name}`);
 
         // Flash action bar pink when object is clicked
         if (this.actionBar) {
+          // SCUMM behavior: unlock any previous interaction before starting new one
+          this.actionBar.unlockFromInteraction();
           this.actionBar.flashPink();
+          // SCUMM behavior: lock action bar during interaction (no hover updates)
+          this.actionBar.lockForInteraction();
         }
 
         // Store the pending action to execute when movement completes
-        this.setPendingAction(currentAction, clickedObject);
+        this.setPendingAction(actionToExecute as ActionType, clickedObject);
       } else {
         console.log(`Cannot reach object: ${clickedObject.name}`);
       }
-    } else if (
-      this.characterController &&
-      this.gameState.currentAction === "walk"
-    ) {
-      // Only move character if current action is walk
+    } else if (this.characterController) {
+      // Left-click on empty area: cancel any pending action and walk there
+      if (this.pendingAction) {
+        console.log(
+          "Cancelling pending action due to left-click on empty area",
+        );
+        this.pendingAction = undefined;
+
+        // SCUMM behavior: unlock and revert action bar when cancelling
+        if (this.actionBar) {
+          this.actionBar.unlockFromInteraction();
+          this.actionBar.revertColor();
+        }
+
+        // Revert to walk action
+        this.revertToWalkAction();
+      }
+
+      // Now execute the walk action
       const success = this.characterController.moveTo(position.x, position.y);
 
       if (success) {
@@ -1591,6 +1626,10 @@ export class Game {
               );
             }
             this.pendingAction = undefined;
+            // SCUMM behavior: unlock action bar when interaction completes
+            if (this.actionBar) {
+              this.actionBar.unlockFromInteraction();
+            }
             this.revertToWalkAction();
             return;
           }
@@ -1602,6 +1641,10 @@ export class Game {
         await this.handleStageTransition(transition);
         // Clear the pending action and return - no need for other responses
         this.pendingAction = undefined;
+        // SCUMM behavior: unlock action bar when interaction completes
+        if (this.actionBar) {
+          this.actionBar.unlockFromInteraction();
+        }
         return;
       }
     }
@@ -1655,6 +1698,11 @@ export class Game {
 
     // Clear the pending action
     this.pendingAction = undefined;
+
+    // SCUMM behavior: unlock action bar when interaction completes
+    if (this.actionBar) {
+      this.actionBar.unlockFromInteraction();
+    }
 
     // Revert to walk action after executing the action
     this.revertToWalkAction();
@@ -1995,8 +2043,16 @@ export class Game {
     const previousAction = this.gameState.currentAction;
     this.gameState.currentAction = action;
 
+    // SCUMM behavior: right-click interruption cancels pending action
+    if (this.pendingAction) {
+      console.log("Right-click interruption: cancelling pending action");
+      this.pendingAction = undefined;
+    }
+
     // Update action bar to show the default action with object name
+    // Force update even if locked (right-click interruption)
     if (this.actionBar) {
+      this.actionBar.unlockFromInteraction(); // Temporarily unlock
       this.actionBar.showObjectHoverWithAction(object.name, action);
     }
 
@@ -2010,7 +2066,11 @@ export class Game {
 
       // Flash action bar pink when object is clicked
       if (this.actionBar) {
+        // SCUMM behavior: unlock any previous interaction before starting new one
+        this.actionBar.unlockFromInteraction();
         this.actionBar.flashPink();
+        // SCUMM behavior: lock action bar during interaction (no hover updates)
+        this.actionBar.lockForInteraction();
       }
 
       // Store the pending action to execute when movement completes
@@ -2032,8 +2092,16 @@ export class Game {
     const previousAction = this.gameState.currentAction;
     this.gameState.currentAction = action;
 
+    // SCUMM behavior: right-click interruption cancels pending action
+    if (this.pendingAction) {
+      console.log("Right-click NPC interruption: cancelling pending action");
+      this.pendingAction = undefined;
+    }
+
     // Update action bar to show the default action with NPC name
+    // Force update even if locked (right-click interruption)
     if (this.actionBar) {
+      this.actionBar.unlockFromInteraction(); // Temporarily unlock
       this.actionBar.showObjectHoverWithAction(npc.getName(), action);
     }
 

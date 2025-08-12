@@ -12,6 +12,7 @@ export class ActionBar {
   private normalColor: number = 0xaa00ff; // bright purple
   private flashColor: number = 0xff69b4; // hot pink
   private isDisabled: boolean = false;
+  private isLocked: boolean = false; // SCUMM-style: lock during interactions
 
   constructor(width: number) {
     this.width = width;
@@ -94,10 +95,14 @@ export class ActionBar {
   }
 
   showObjectHover(objectName: string): void {
+    // SCUMM behavior: ignore hover updates when locked during interaction
+    if (this.isLocked) return;
     this.showObjectHoverWithAction(objectName, this.currentAction);
   }
 
   showObjectHoverWithAction(objectName: string, action: string): void {
+    // SCUMM behavior: ignore hover updates when locked during interaction
+    if (this.isLocked) return;
     // Format action text with appropriate preposition for the object
     let actionText;
     switch (action.toLowerCase()) {
@@ -127,6 +132,8 @@ export class ActionBar {
   }
 
   showDefaultText(): void {
+    // SCUMM behavior: ignore default text updates when locked during interaction
+    if (this.isLocked) return;
     // Show the current action instead of always defaulting to "Walk to"
     this.setAction(this.currentAction);
   }
@@ -167,6 +174,19 @@ export class ActionBar {
   setDisabled(disabled: boolean): void {
     this.isDisabled = disabled;
     this.updateDisabledState();
+  }
+
+  // SCUMM-style interaction locking
+  lockForInteraction(): void {
+    this.isLocked = true;
+  }
+
+  unlockFromInteraction(): void {
+    this.isLocked = false;
+  }
+
+  isInteractionLocked(): boolean {
+    return this.isLocked;
   }
 
   private updateDisabledState(): void {
