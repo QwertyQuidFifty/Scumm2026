@@ -769,12 +769,7 @@ export class Game {
         }
 
         // Store the pending action to execute when movement completes
-        if (currentAction !== "walk") {
-          this.setPendingAction(currentAction, clickedObject);
-        } else {
-          // For walk action on interactive areas, just set flag to revert color when arrived
-          this.isPendingWalkActionColor = true;
-        }
+        this.setPendingAction(currentAction, clickedObject);
       } else {
         console.log(`Cannot reach object: ${clickedObject.name}`);
       }
@@ -1556,9 +1551,7 @@ export class Game {
     if (!this.pendingAction) return;
 
     const { action, object } = this.pendingAction;
-    console.log(
-      `Executing pending action: ${action} on ${object.name} (id: ${object.id})`,
-    );
+    console.log(`Executing pending action: ${action} on ${object.name}`);
 
     // Revert action bar color when we arrive at the object (before executing the action)
     if (this.actionBar) {
@@ -1568,28 +1561,20 @@ export class Game {
     // Check for stage transitions first (for walk actions only)
     const currentStage = this.stageManager.getCurrentStage();
     if (currentStage && action === "walk") {
-      console.log(`Walk action on ${object.id} in stage ${currentStage.id}`);
       const transition = this.stageManager.findTransition(
         currentStage.id,
         object.id,
       );
-      console.log(`Transition found: ${!!transition}`);
       if (transition) {
         // For building-entrance, only allow walk transition if door is open
         if (object.id === "building-entrance") {
-          console.log("Checking building-entrance door state...");
           const overlayManager = this.stageManager.getStageOverlayManager();
           const doorOverlay = overlayManager.getOverlayByObjectAndAction(
             object.id,
             "open",
           );
-          console.log(`Door overlay found: ${!!doorOverlay}`);
-          if (doorOverlay) {
-            console.log(`Door overlay visible: ${doorOverlay.isVisible()}`);
-          }
           if (!doorOverlay || !doorOverlay.isVisible()) {
             // Door is closed, show appropriate message
-            console.log("Door is closed, showing message");
             if (this.speechBubble && this.characterSprite) {
               this.speechBubble.showSpeech(
                 "The door is closed. I need to open it first.",
@@ -1604,7 +1589,6 @@ export class Game {
             this.revertToWalkAction();
             return;
           }
-          console.log("Door is open, proceeding with transition");
         }
 
         console.log(
