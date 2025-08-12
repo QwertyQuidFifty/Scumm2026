@@ -268,6 +268,8 @@ export class Game {
     // Set up depth manager callback for character movement
     this.characterController.setMoveCallback((position: Position) => {
       this.depthManager!.updateSpritePosition("character", position.y);
+      console.log(`Character moved to Y position: ${position.y}`);
+      this.depthManager!.logSpriteInfo(); // Debug current sprite order
     });
 
     // Set up walkable area from current stage

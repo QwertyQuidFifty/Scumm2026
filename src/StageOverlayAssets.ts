@@ -1,6 +1,8 @@
 import { Graphics, RenderTexture, Renderer } from "pixi.js";
 import { Position } from "./types";
 
+export type OverlayZIndexType = "foreground" | "inline" | "background";
+
 export interface OverlayAssetDefinition {
   id: string;
   objectId: string;
@@ -9,7 +11,7 @@ export interface OverlayAssetDefinition {
   position: Position;
   width: number;
   height: number;
-  zIndex: number;
+  zIndexType: OverlayZIndexType; // New: foreground, inline, or background
   visible: boolean;
   triggerAction?: string;
   // Asset type - either polygon data or PNG file reference
@@ -93,7 +95,7 @@ export class StageOverlayAssets {
         position: { x: 58, y: 634 }, // Match the polygon coordinates
         width: 96,
         height: 230,
-        zIndex: 1, // Above background, below characters and NPCs
+        zIndexType: "background", // Behind characters and NPCs
         visible: false, // Initially hidden
         triggerAction: "open",
         assetType: "polygon",
@@ -113,10 +115,10 @@ export class StageOverlayAssets {
         objectId: "stool-small", // Create a matching interactive object
         stageName: "test-indoor", // This is the mechstore stage
         assetKey: "stool_small",
-        position: { x: 500, y: 700 }, // Within walkable area (336-899, 613-772)
+        position: { x: 500, y: 700 }, // Within walkable area (336-899, 613-772) - TEST: moved up for depth testing
         width: 64, // Estimated width for small stool
         height: 64, // Estimated height for small stool
-        zIndex: 1, // Above background, below characters
+        zIndexType: "inline", // Y-position based depth like NPCs
         visible: true, // Visible by default (it's a static object)
         assetType: "png",
         pngPath: "/assets/stool-small.png",

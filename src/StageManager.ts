@@ -242,23 +242,23 @@ export class StageManager {
         {
           id: "stool-small",
           name: "small stool",
-          position: { x: 500, y: 700 }, // Match overlay position
+          position: { x: 500, y: 650 }, // Match overlay position
           width: 64,
           height: 64,
           description: "A small wooden stool",
           defaultAction: "look",
           polygon: [
-            { x: 468, y: 668 }, // 500-32, 700-32 (32px margin around center)
-            { x: 532, y: 668 }, // 500+32, 700-32
-            { x: 532, y: 732 }, // 500+32, 700+32
-            { x: 468, y: 732 }, // 500-32, 700+32
+            { x: 554, y: 595 }, // 500-32, 650-32 (32px margin around center)
+            { x: 655, y: 595 }, // 500+32, 650-32
+            { x: 652, y: 678 }, // 500+32, 650+32
+            { x: 554, y: 678 }, // 500-32, 650+32
           ],
         },
       ],
       characterStartPosition: { x: 863, y: 628 },
       interactionPoints: new Map([
         ["exit-door", { x: 850, y: 620 }], // Near the exit door, within walkable area
-        ["stool-small", { x: 500, y: 730 }], // In front of the stool, within walkable area
+        ["stool-small", { x: 500, y: 680 }], // In front of the stool, within walkable area
       ]),
       perspectiveScale: {
         minY: 613, // At back of room
@@ -476,16 +476,48 @@ export class StageManager {
         }
       }
 
-      // Register overlay container with depth manager to ensure proper layering
+      // Register overlays individually with depth manager based on their z-index type
       if (this.depthManager) {
-        this.depthManager.registerSprite(
-          "stage-overlays",
-          this.stageOverlayManager.getContainer(),
-          -500, // Low Y position to keep overlays behind characters but above background (-1000)
-          "object",
-        );
+        // Register each overlay separately with appropriate depth
+        const overlayManager = this.stageOverlayManager;
+        let backgroundCount = 0;
+        let foregroundCount = 0;
+
+        for (const assetDef of overlayAssets) {
+          const overlay = overlayManager.getOverlay(assetDef.id);
+          if (overlay) {
+            let yPosition: number;
+            const spriteType: "character" | "npc" | "object" = "object";
+
+            switch (assetDef.zIndexType) {
+              case "background":
+                yPosition = -500 - backgroundCount; // Behind characters/NPCs
+                backgroundCount++;
+                break;
+              case "inline":
+                yPosition = assetDef.position.y; // Same as object position for depth sorting
+                break;
+              case "foreground":
+                yPosition = 10000 + foregroundCount; // In front of everything
+                foregroundCount++;
+                break;
+            }
+
+            this.depthManager.registerSprite(
+              `overlay-${assetDef.id}`,
+              overlay.getContainer(),
+              yPosition,
+              spriteType,
+            );
+
+            console.log(
+              `Registered ${assetDef.zIndexType} overlay ${assetDef.id} at Y position ${yPosition}`,
+            );
+          }
+        }
+
         console.log(
-          "Registered stage overlay container with depth manager at Y position -500",
+          `Registered ${overlayAssets.length} overlays with depth manager`,
         );
       } else {
         // Fallback: add overlay container to stage (only once)
@@ -732,9 +764,18 @@ export class StageManager {
       this.npcManager.clearAllNPCs();
     }
 
-    // Unregister stage overlays from depth manager
+    // Unregister individual stage overlays from depth manager
     if (this.depthManager) {
-      this.depthManager.unregisterSprite("stage-overlays");
+      // Get all current overlays and unregister them
+      const currentStage = this.getCurrentStage();
+      if (currentStage) {
+        const overlayAssets = StageOverlayAssets.getStageOverlayAssets(
+          currentStage.id,
+        );
+        for (const assetDef of overlayAssets) {
+          this.depthManager.unregisterSprite(`overlay-${assetDef.id}`);
+        }
+      }
     }
 
     // Clear stage overlays

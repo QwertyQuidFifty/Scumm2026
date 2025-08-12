@@ -1,5 +1,6 @@
 import { Sprite, Container, Texture, Renderer } from "pixi.js";
 import { Position } from "./types";
+import { OverlayZIndexType } from "./StageOverlayAssets";
 
 export interface StageOverlayData {
   id: string;
@@ -8,7 +9,7 @@ export interface StageOverlayData {
   position: Position; // Position on stage
   width: number;
   height: number;
-  zIndex: number; // Layering (1 = above background, below characters/NPCs)
+  zIndexType: OverlayZIndexType; // Layering type: foreground, inline, or background
   visible: boolean; // Initial visibility
   triggerAction?: string; // Action that toggles this overlay (e.g., "open")
 }
@@ -21,12 +22,13 @@ export class StageOverlay {
   constructor(data: StageOverlayData, texture: Texture) {
     this.data = data;
 
-    // Create container for positioning and z-index
+    // Create container for positioning
     this.container = new Container();
     this.container.x = data.position.x;
     this.container.y = data.position.y;
-    this.container.zIndex = data.zIndex;
     this.container.visible = data.visible;
+
+    // Z-index will be handled by the StageManager based on zIndexType
 
     // Create sprite
     this.sprite = new Sprite(texture);
@@ -73,6 +75,10 @@ export class StageOverlay {
 
   getTriggerAction(): string | undefined {
     return this.data.triggerAction;
+  }
+
+  getZIndexType(): OverlayZIndexType {
+    return this.data.zIndexType;
   }
 
   getContainer(): Container {
