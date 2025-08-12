@@ -195,7 +195,14 @@ export class ActionResponseSystem {
         [
           "open",
           {
-            text: "I push open the entrance door and step inside.",
+            text: "I push open the entrance door. It creaks as it swings open.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "walk",
+          {
+            text: "I step through the entrance into the building.",
             shouldMoveCharacter: false,
           },
         ],

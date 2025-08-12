@@ -185,6 +185,9 @@ export class Game {
     this.stageManager.setDepthManager(this.depthManager!);
     this.npcManager.setDepthManager(this.depthManager!);
 
+    // Set up renderer for stage overlays
+    this.stageManager.setRenderer(this.app.renderer);
+
     // Load the initial stage (cyberpunk street) into game world container
     const success = await this.stageManager.loadStage(
       "cyberpunk-street",
@@ -1553,21 +1556,57 @@ export class Game {
     if (!this.pendingAction) return;
 
     const { action, object } = this.pendingAction;
-    console.log(`Executing pending action: ${action} on ${object.name}`);
+    console.log(
+      `Executing pending action: ${action} on ${object.name} (id: ${object.id})`,
+    );
 
     // Revert action bar color when we arrive at the object (before executing the action)
     if (this.actionBar) {
       this.actionBar.revertColor();
     }
 
-    // Check for stage transitions first (for open/walk actions)
+    // Check for stage transitions first (for walk actions only)
     const currentStage = this.stageManager.getCurrentStage();
-    if (currentStage && (action === "open" || action === "walk")) {
+    if (currentStage && action === "walk") {
+      console.log(`Walk action on ${object.id} in stage ${currentStage.id}`);
       const transition = this.stageManager.findTransition(
         currentStage.id,
         object.id,
       );
+      console.log(`Transition found: ${!!transition}`);
       if (transition) {
+        // For building-entrance, only allow walk transition if door is open
+        if (object.id === "building-entrance") {
+          console.log("Checking building-entrance door state...");
+          const overlayManager = this.stageManager.getStageOverlayManager();
+          const doorOverlay = overlayManager.getOverlayByObjectAndAction(
+            object.id,
+            "open",
+          );
+          console.log(`Door overlay found: ${!!doorOverlay}`);
+          if (doorOverlay) {
+            console.log(`Door overlay visible: ${doorOverlay.isVisible()}`);
+          }
+          if (!doorOverlay || !doorOverlay.isVisible()) {
+            // Door is closed, show appropriate message
+            console.log("Door is closed, showing message");
+            if (this.speechBubble && this.characterSprite) {
+              this.speechBubble.showSpeech(
+                "The door is closed. I need to open it first.",
+              );
+              this.speechBubble.positionAboveCharacter(
+                this.characterSprite.x,
+                this.characterSprite.y,
+                this.config.gameHeight,
+              );
+            }
+            this.pendingAction = undefined;
+            this.revertToWalkAction();
+            return;
+          }
+          console.log("Door is open, proceeding with transition");
+        }
+
         console.log(
           `Found stage transition from ${currentStage.id} to ${transition.toStageId}`,
         );
@@ -1596,6 +1635,12 @@ export class Game {
       if (action === "get" && object.id === "golden-key") {
         // Special handling for pickupable items
         this.handleGetAction(object);
+      }
+
+      // Handle stage overlay triggers
+      if (action === "open" && object.id === "building-entrance") {
+        // Trigger the building entrance door overlay
+        this.stageManager.triggerOverlay(object.id, action);
       }
 
       console.log(`${action.toUpperCase()}: ${response.text}`);

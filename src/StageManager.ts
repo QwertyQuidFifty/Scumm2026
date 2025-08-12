@@ -1,10 +1,12 @@
-import { Sprite, Container } from "pixi.js";
+import { Sprite, Container, Renderer } from "pixi.js";
 import { Stage, StageTransition } from "./Stage";
 import { AssetManager } from "./AssetManager";
 import { ObjectManager } from "./ObjectManager";
 import { KeySprite } from "./KeySprite";
 import { NPCManager } from "./NPCManager";
 import { DepthManager } from "./DepthManager";
+import { StageOverlayManager } from "./StageOverlay";
+import { StageOverlayAssets } from "./StageOverlayAssets";
 
 export class StageManager {
   private stages: Map<string, Stage> = new Map();
@@ -17,12 +19,20 @@ export class StageManager {
   private objectManager: ObjectManager;
   private npcManager?: NPCManager;
   private depthManager?: DepthManager;
+  private stageOverlayManager: StageOverlayManager;
+  private renderer?: Renderer;
   // Track objects that have been permanently removed from stages
   private removedObjects: Map<string, Set<string>> = new Map(); // stageId -> Set<objectId>
   constructor(assetManager: AssetManager, objectManager: ObjectManager) {
     this.assetManager = assetManager;
     this.objectManager = objectManager;
     this.stageContainer = new Container();
+    this.stageOverlayManager = new StageOverlayManager();
+  }
+
+  setRenderer(renderer: Renderer): void {
+    this.renderer = renderer;
+    this.stageOverlayManager.setRenderer(renderer);
   }
 
   // Initialize the stage system with predefined stages
@@ -82,10 +92,10 @@ export class StageManager {
           description: "A dark building entrance",
           defaultAction: "open",
           polygon: [
-            { x: 58, y: 421 }, // 381 + 40
-            { x: 125, y: 433 }, // 393 + 40
-            { x: 123, y: 634 }, // 594 + 40
-            { x: 62, y: 650 }, // 610 + 40
+            { x: 58, y: 450 }, // 381 + 40
+            { x: 124, y: 470 }, // 393 + 40
+            { x: 124, y: 634 }, // 594 + 40
+            { x: 58, y: 650 }, // 610 + 40
           ],
         },
         {
@@ -396,9 +406,83 @@ export class StageManager {
       );
     }
 
+    // Load stage overlays
+    if (this.renderer) {
+      await this.loadStageOverlays(stage, parentContainer);
+    }
+
     this.currentStage = stage;
     console.log(`Stage loaded successfully: ${stage.name}`);
     return true;
+  }
+
+  private async loadStageOverlays(
+    stage: Stage,
+    parentContainer: Container,
+  ): Promise<void> {
+    // Get all overlay assets for this stage
+    const overlayAssets = StageOverlayAssets.getStageOverlayAssets(stage.id);
+
+    if (overlayAssets.length > 0) {
+      for (const assetDef of overlayAssets) {
+        let texture;
+
+        if (assetDef.assetType === "polygon" && assetDef.polygon) {
+          // Create texture from polygon data
+          texture = StageOverlayAssets.createPolygonTexture(
+            this.renderer!,
+            assetDef.polygon,
+            assetDef.fillColor,
+            assetDef.innerFillColor,
+          );
+        } else if (assetDef.assetType === "png" && assetDef.pngPath) {
+          // Load PNG asset
+          try {
+            texture = await this.assetManager.loadAsset(
+              assetDef.assetKey,
+              assetDef.pngPath,
+            );
+          } catch (error) {
+            console.error(
+              `Failed to load PNG overlay asset ${assetDef.id}: ${error}`,
+            );
+            continue;
+          }
+        } else {
+          console.warn(`Invalid asset definition for overlay: ${assetDef.id}`);
+          continue;
+        }
+
+        // Add overlay using the asset definition
+        const success = this.stageOverlayManager.addOverlay(assetDef, texture);
+        if (!success) {
+          console.error(`Failed to add overlay: ${assetDef.id}`);
+        }
+      }
+
+      // Register overlay container with depth manager to ensure proper layering
+      if (this.depthManager) {
+        this.depthManager.registerSprite(
+          "stage-overlays",
+          this.stageOverlayManager.getContainer(),
+          -500, // Low Y position to keep overlays behind characters but above background (-1000)
+          "object",
+        );
+        console.log(
+          "Registered stage overlay container with depth manager at Y position -500",
+        );
+      } else {
+        // Fallback: add overlay container to stage (only once)
+        parentContainer.addChild(this.stageOverlayManager.getContainer());
+        console.log(
+          "No depth manager available, using fallback overlay rendering",
+        );
+      }
+
+      console.log(
+        `Loaded ${overlayAssets.length} overlays for stage: ${stage.name}`,
+      );
+    }
   }
 
   private async loadBackground(
@@ -632,12 +716,29 @@ export class StageManager {
       this.npcManager.clearAllNPCs();
     }
 
+    // Unregister stage overlays from depth manager
+    if (this.depthManager) {
+      this.depthManager.unregisterSprite("stage-overlays");
+    }
+
+    // Clear stage overlays
+    this.stageOverlayManager.clearAll();
+
     // Clear stage container
     this.stageContainer.removeChildren();
   }
 
   getStageContainer(): Container {
     return this.stageContainer;
+  }
+
+  // Methods for triggering overlays
+  triggerOverlay(objectId: string, action: string): boolean {
+    return this.stageOverlayManager.toggleOverlayByAction(objectId, action);
+  }
+
+  getStageOverlayManager(): StageOverlayManager {
+    return this.stageOverlayManager;
   }
 
   getBackgroundSprite(): Sprite | undefined {
