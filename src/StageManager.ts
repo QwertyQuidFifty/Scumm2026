@@ -239,10 +239,26 @@ export class StageManager {
             { x: 856, y: 599 },
           ],
         },
+        {
+          id: "stool-small",
+          name: "small stool",
+          position: { x: 500, y: 700 }, // Match overlay position
+          width: 64,
+          height: 64,
+          description: "A small wooden stool",
+          defaultAction: "look",
+          polygon: [
+            { x: 468, y: 668 }, // 500-32, 700-32 (32px margin around center)
+            { x: 532, y: 668 }, // 500+32, 700-32
+            { x: 532, y: 732 }, // 500+32, 700+32
+            { x: 468, y: 732 }, // 500-32, 700+32
+          ],
+        },
       ],
       characterStartPosition: { x: 863, y: 628 },
       interactionPoints: new Map([
         ["exit-door", { x: 850, y: 620 }], // Near the exit door, within walkable area
+        ["stool-small", { x: 500, y: 730 }], // In front of the stool, within walkable area
       ]),
       perspectiveScale: {
         minY: 613, // At back of room

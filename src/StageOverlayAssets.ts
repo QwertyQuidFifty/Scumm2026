@@ -106,21 +106,21 @@ export class StageOverlayAssets {
         fillColor: 0x0f0f0f, // Very dark base
         innerFillColor: 0x2a1f0f, // Dim warm light in center area
       },
-      // Future PNG assets can be added like this:
-      // {
-      //   id: "cryptic-door-open",
-      //   objectId: "cryptic-door",
-      //   stageName: "cyberpunk-street",
-      //   assetKey: "cryptic_door_open",
-      //   position: { x: 870, y: 670 },
-      //   width: 77,
-      //   height: 255,
-      //   zIndex: 1,
-      //   visible: false,
-      //   triggerAction: "open",
-      //   assetType: "png",
-      //   pngPath: "/assets/overlays/cryptic-door-open.png"
-      // }
+
+      // Small stool in mechstore
+      {
+        id: "mechstore-stool",
+        objectId: "stool-small", // Create a matching interactive object
+        stageName: "test-indoor", // This is the mechstore stage
+        assetKey: "stool_small",
+        position: { x: 500, y: 700 }, // Within walkable area (336-899, 613-772)
+        width: 64, // Estimated width for small stool
+        height: 64, // Estimated height for small stool
+        zIndex: 1, // Above background, below characters
+        visible: true, // Visible by default (it's a static object)
+        assetType: "png",
+        pngPath: "/assets/stool-small.png",
+      },
     ];
   }
 }

@@ -327,6 +327,48 @@ export class ActionResponseSystem {
       ]),
     );
 
+    // Small Stool responses (mechstore stage)
+    this.responses.set(
+      "stool-small",
+      new Map([
+        [
+          "look",
+          {
+            text: "It's a small wooden stool. Simple but sturdy.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "use",
+          {
+            text: "I could sit on it, but I don't need to rest right now.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "get",
+          {
+            text: "The stool is too heavy and I don't need it.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "talk",
+          {
+            text: "The stool doesn't respond.",
+            shouldMoveCharacter: false,
+          },
+        ],
+        [
+          "open",
+          {
+            text: "There's nothing to open on the stool.",
+            shouldMoveCharacter: false,
+          },
+        ],
+      ]),
+    );
+
     // Add inventory item responses
     this.initializeInventoryItemResponses();
 
