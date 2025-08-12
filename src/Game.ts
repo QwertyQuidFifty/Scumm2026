@@ -268,8 +268,6 @@ export class Game {
     // Set up depth manager callback for character movement
     this.characterController.setMoveCallback((position: Position) => {
       this.depthManager!.updateSpritePosition("character", position.y);
-      console.log(`Character moved to Y position: ${position.y}`);
-      this.depthManager!.logSpriteInfo(); // Debug current sprite order
     });
 
     // Set up walkable area from current stage
@@ -1928,6 +1926,11 @@ export class Game {
 
     // Update NPCs
     this.npcManager.update(currentTime);
+
+    // SCUMM-style depth sorting: only when needed, not every frame
+    if (this.depthManager) {
+      this.depthManager.sortSpritesIfNeeded();
+    }
 
     // Update character perspective scaling based on Y position
     if (this.characterSprite) {

@@ -12,6 +12,7 @@ export interface DepthSortableSprite {
 export class DepthManager {
   private container: Container;
   private sprites: Map<string, DepthSortableSprite> = new Map();
+  private needsSort: boolean = false;
 
   constructor(container: Container) {
     this.container = container;
@@ -34,8 +35,9 @@ export class DepthManager {
     // Track it for depth sorting
     this.sprites.set(id, { sprite, yPosition, type, id });
 
-    // Sort immediately
-    this.sortSprites();
+    // Mark as needing sort instead of sorting immediately (more efficient)
+    this.needsSort = true;
+    this.sortSpritesIfNeeded();
 
     console.log(`Registered sprite ${id} (${type}) at Y position ${yPosition}`);
   }
@@ -56,8 +58,21 @@ export class DepthManager {
   updateSpritePosition(id: string, yPosition: number): void {
     const spriteData = this.sprites.get(id);
     if (spriteData) {
+      const oldPosition = spriteData.yPosition;
       spriteData.yPosition = yPosition;
+
+      // Only resort if the Y position actually changed significantly
+      // This is more like classic SCUMM behavior
+      if (Math.abs(oldPosition - yPosition) > 1) {
+        this.needsSort = true;
+      }
+    }
+  }
+
+  sortSpritesIfNeeded(): void {
+    if (this.needsSort) {
       this.sortSprites();
+      this.needsSort = false;
     }
   }
 
@@ -88,8 +103,8 @@ export class DepthManager {
 
   // Force a re-sort (useful after stage transitions)
   forceSortSprites(): void {
-    console.log("Force sorting sprites...");
-    this.sortSprites();
+    this.needsSort = true;
+    this.sortSpritesIfNeeded();
   }
 
   getContainer(): Container {
