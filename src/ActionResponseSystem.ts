@@ -157,6 +157,13 @@ export class ActionResponseSystem {
           "open",
           { text: "There's nothing to open here.", shouldMoveCharacter: false },
         ],
+        [
+          "walk",
+          {
+            text: "I'm not going out in the open like that.",
+            shouldMoveCharacter: false,
+          },
+        ],
       ]),
     );
 
@@ -195,7 +202,7 @@ export class ActionResponseSystem {
         [
           "open",
           {
-            text: "I push open the entrance door. It creaks as it swings open.",
+            text: "",
             shouldMoveCharacter: false,
           },
         ],

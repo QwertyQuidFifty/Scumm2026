@@ -1158,6 +1158,11 @@ export class Game {
         break;
       }
 
+      case "walk": {
+        // Walk actions on NPCs should do nothing (no speech, no error)
+        break;
+      }
+
       default: {
         const errorText = `I can't ${action} with ${npc.getName()}.`;
         const errorPosition = npc.getSpeechBubblePosition();
@@ -1605,8 +1610,8 @@ export class Game {
     const response = this.actionResponseSystem.getResponse(object.id, action);
 
     if (response) {
-      // Show response text in speech bubble above character
-      if (this.speechBubble && this.characterSprite) {
+      // Show response text in speech bubble above character (only if text is not empty)
+      if (this.speechBubble && this.characterSprite && response.text.trim()) {
         this.speechBubble.showSpeech(response.text);
         this.speechBubble.positionAboveCharacter(
           this.characterSprite.x,
@@ -1629,17 +1634,23 @@ export class Game {
 
       console.log(`${action.toUpperCase()}: ${response.text}`);
     } else {
-      // Fallback for unknown object-action combinations
-      const fallbackText = `I can't ${action} the ${object.name}.`;
-      if (this.speechBubble && this.characterSprite) {
-        this.speechBubble.showSpeech(fallbackText);
-        this.speechBubble.positionAboveCharacter(
-          this.characterSprite.x,
-          this.characterSprite.y,
-          this.config.gameHeight,
-        );
+      // Special case: walk actions with no response should do nothing
+      if (action === "walk") {
+        // Do nothing for walk actions without specific responses
+        console.log(`Walk action on ${object.name} - no response needed`);
+      } else {
+        // Fallback for other unknown object-action combinations
+        const fallbackText = `I can't ${action} the ${object.name}.`;
+        if (this.speechBubble && this.characterSprite) {
+          this.speechBubble.showSpeech(fallbackText);
+          this.speechBubble.positionAboveCharacter(
+            this.characterSprite.x,
+            this.characterSprite.y,
+            this.config.gameHeight,
+          );
+        }
+        console.log(`Unknown action: ${action} on ${object.name}`);
       }
-      console.log(`Unknown action: ${action} on ${object.name}`);
     }
 
     // Clear the pending action
