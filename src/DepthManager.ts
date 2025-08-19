@@ -24,13 +24,21 @@ export class DepthManager {
     yPosition: number,
     type: "character" | "npc" | "object",
   ): void {
+    // Check if already registered
+    if (this.sprites.has(id)) {
+      this.updateSpritePosition(id, yPosition);
+      return;
+    }
+
     // Remove from old container if it has a parent
-    if (sprite.parent) {
+    if (sprite.parent && sprite.parent !== this.container) {
       sprite.parent.removeChild(sprite);
     }
 
-    // Add to our managed container
-    this.container.addChild(sprite);
+    // Add to our managed container only if not already there
+    if (sprite.parent !== this.container) {
+      this.container.addChild(sprite);
+    }
 
     // Track it for depth sorting
     this.sprites.set(id, { sprite, yPosition, type, id });
@@ -38,8 +46,6 @@ export class DepthManager {
     // Mark as needing sort instead of sorting immediately (more efficient)
     this.needsSort = true;
     this.sortSpritesIfNeeded();
-
-    console.log(`Registered sprite ${id} (${type}) at Y position ${yPosition}`);
   }
 
   unregisterSprite(id: string): void {
@@ -51,7 +57,6 @@ export class DepthManager {
       }
       // Remove from tracking
       this.sprites.delete(id);
-      console.log(`Unregistered sprite ${id}`);
     }
   }
 
@@ -82,23 +87,34 @@ export class DepthManager {
     // Sort by Y position (lower Y = rendered behind, higher Y = rendered in front)
     spritesArray.sort((a, b) => a.yPosition - b.yPosition);
 
+    // Filter to only sprites that are actually in our container
+    const validSprites = spritesArray.filter(
+      (spriteData) =>
+        spriteData.sprite &&
+        !spriteData.sprite.destroyed &&
+        spriteData.sprite.parent === this.container,
+    );
+
     // Reorder children in container based on sort
-    spritesArray.forEach((spriteData, index) => {
+    validSprites.forEach((spriteData, index) => {
       try {
-        // Check if sprite still exists and has the container as parent
-        if (
-          spriteData.sprite &&
-          !spriteData.sprite.destroyed &&
-          spriteData.sprite.parent === this.container
-        ) {
-          this.container.setChildIndex(spriteData.sprite, index);
-        }
-      } catch (error) {
-        console.warn(`Error sorting sprite ${spriteData.id}:`, error);
+        this.container.setChildIndex(spriteData.sprite, index);
+      } catch {
         // Remove problematic sprite from tracking
         this.sprites.delete(spriteData.id);
       }
     });
+
+    // Clean up sprites that are no longer in the container
+    for (const [id, spriteData] of this.sprites.entries()) {
+      if (
+        !spriteData.sprite ||
+        spriteData.sprite.destroyed ||
+        spriteData.sprite.parent !== this.container
+      ) {
+        this.sprites.delete(id);
+      }
+    }
   }
 
   // Force a re-sort (useful after stage transitions)
