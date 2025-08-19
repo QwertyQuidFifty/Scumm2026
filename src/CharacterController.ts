@@ -1,6 +1,6 @@
 import { Sprite } from "pixi.js";
 import { Position } from "./types";
-import { CharacterSprites } from "./SpriteGenerator";
+import { CharacterSprites, Direction } from "./SpriteGenerator";
 import { InteractiveObject } from "./InteractiveObject";
 
 interface MovementState {
@@ -12,10 +12,11 @@ interface MovementState {
 }
 
 interface AnimationState {
-  currentFrame: "idle" | "walk1" | "walk2";
+  currentFrame: "idle" | "walk1" | "walk2" | "walk3" | "walk4";
   frameStartTime: number;
-  frameDuration: number; // 300ms as per spec
+  frameDuration: number; // Reduced to 250ms for smoother 4-frame animation
   isWalking: boolean;
+  currentDirection: Direction; // Track which way character is facing
 }
 
 export class CharacterController {
@@ -49,16 +50,17 @@ export class CharacterController {
       duration: 0,
     };
 
-    // Initialize animation state
+    // Initialize animation state - start facing down (standard adventure game default)
     this.animationState = {
       currentFrame: "idle",
       frameStartTime: 0,
-      frameDuration: 300, // 300ms per frame as per spec
+      frameDuration: 250, // 250ms per frame for smooth 4-frame animation
       isWalking: false,
+      currentDirection: "down",
     };
 
-    // Set initial sprite to idle
-    this.sprite.texture = this.sprites.idle;
+    // Set initial sprite to idle facing down
+    this.sprite.texture = this.sprites.down.idle;
   }
 
   setWalkableArea(polygon: Position[]): void {
@@ -131,6 +133,13 @@ export class CharacterController {
       startTime: performance.now(),
       duration: duration * 1000, // convert to milliseconds
     };
+
+    // Calculate and update direction based on movement
+    const newDirection = this.calculateDirection(
+      { x: startX, y: startY },
+      { x: targetX, y: targetY },
+    );
+    this.updateDirection(newDirection);
 
     // Start walking animation
     this.animationState.isWalking = true;
@@ -220,7 +229,9 @@ export class CharacterController {
       this.movementState.isMoving = false;
       this.animationState.isWalking = false;
       this.animationState.currentFrame = "idle";
-      this.sprite.texture = this.sprites.idle;
+      // Set idle texture in current direction
+      const currentDirection = this.animationState.currentDirection;
+      this.sprite.texture = this.sprites[currentDirection].idle;
       console.log(
         `Character arrived at (${this.sprite.x.toFixed(1)}, ${this.sprite.y.toFixed(1)})`,
       );
@@ -228,33 +239,64 @@ export class CharacterController {
   }
 
   private updateAnimation(currentTime: number): void {
-    if (!this.animationState.isWalking) return;
-
     const elapsed = currentTime - this.animationState.frameStartTime;
 
     if (elapsed >= this.animationState.frameDuration) {
-      // Cycle through animation frames: walk1 → idle → walk2 → idle → repeat
-      switch (this.animationState.currentFrame) {
-        case "idle":
-          this.animationState.currentFrame =
-            Math.random() > 0.5 ? "walk1" : "walk2";
-          break;
-        case "walk1":
-          this.animationState.currentFrame = "idle";
-          break;
-        case "walk2":
-          this.animationState.currentFrame = "idle";
-          break;
+      if (this.animationState.isWalking) {
+        // Smooth 4-frame walking cycle: walk1 → walk2 → walk3 → walk4 → repeat
+        switch (this.animationState.currentFrame) {
+          case "idle":
+          case "walk4":
+            this.animationState.currentFrame = "walk1";
+            break;
+          case "walk1":
+            this.animationState.currentFrame = "walk2";
+            break;
+          case "walk2":
+            this.animationState.currentFrame = "walk3";
+            break;
+          case "walk3":
+            this.animationState.currentFrame = "walk4";
+            break;
+        }
+      } else {
+        // Not walking - set to idle
+        this.animationState.currentFrame = "idle";
       }
 
-      // Update sprite texture
-      this.sprite.texture = this.sprites[this.animationState.currentFrame];
+      // Update sprite texture using current direction
+      const currentDirection = this.animationState.currentDirection;
+      const currentFrame = this.animationState.currentFrame;
+      this.sprite.texture = this.sprites[currentDirection][currentFrame];
       this.animationState.frameStartTime = currentTime;
     }
   }
 
   isMoving(): boolean {
     return this.movementState.isMoving;
+  }
+
+  // Calculate direction based on movement vector
+  private calculateDirection(from: Position, to: Position): Direction {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+
+    // Determine primary direction (like Monkey Island - prioritize horizontal movement)
+    if (Math.abs(dx) > Math.abs(dy)) {
+      return dx > 0 ? "right" : "left";
+    } else {
+      return dy > 0 ? "down" : "up";
+    }
+  }
+
+  // Update character direction and refresh sprite
+  private updateDirection(direction: Direction): void {
+    if (this.animationState.currentDirection !== direction) {
+      this.animationState.currentDirection = direction;
+      // Immediately update sprite texture
+      const currentFrame = this.animationState.currentFrame;
+      this.sprite.texture = this.sprites[direction][currentFrame];
+    }
   }
 
   getCurrentPosition(): Position {

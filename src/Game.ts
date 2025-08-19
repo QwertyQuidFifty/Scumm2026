@@ -235,7 +235,7 @@ export class Game {
 
   private setupCharacter(): void {
     // Create character sprite with idle animation initially
-    this.characterSprite = new Sprite(this.characterSprites!.idle);
+    this.characterSprite = new Sprite(this.characterSprites!.down.idle);
 
     // Set anchor to bottom center (0.5, 1.0) so sprite aligns naturally to ground
     this.characterSprite.anchor.set(0.5, 1.0);

@@ -168,6 +168,7 @@ export class StageManager {
           ],
           defaultAction: "talk",
           spriteType: "bartender",
+          facingDirection: "left", // Jake faces left
           interactionPoint: { x: 681, y: 667 }, // Stand in front of bar counter
         },
         {
@@ -183,6 +184,7 @@ export class StageManager {
           ],
           defaultAction: "talk",
           spriteType: "customer",
+          facingDirection: "right", // Maya faces right
           interactionPoint: { x: 145, y: 703 }, // Stand in front of vendor on street
         },
       ],
@@ -198,8 +200,8 @@ export class StageManager {
       perspectiveScale: {
         minY: 600, // At bar door position (background)
         maxY: 713, // At cryptic door position (foreground)
-        minScale: 50 / 72, // Scale factor for 100px height at bar door (100 / sprite height 72)
-        maxScale: 200 / 72, // Scale factor for 250px height at cryptic door (250 / sprite height 72)
+        minScale: 100 / 144, // Scale factor for 100px height at bar door (100 / sprite height 144)
+        maxScale: 200 / 144, // Scale factor for 200px height at cryptic door (200 / sprite height 144)
       },
       perspectiveMovement: {
         yMovementFactor: 0.2, // Reduce Y-axis movement by 50% for isometric feel
@@ -263,8 +265,8 @@ export class StageManager {
       perspectiveScale: {
         minY: 613, // At back of room
         maxY: 772, // At front of room
-        minScale: 260 / 72, // Fixed scale for 140px height (140 / sprite height 72)
-        maxScale: 260 / 72, // Same scale throughout - no variation in small room
+        minScale: 140 / 144, // Fixed scale for 140px height (140 / sprite height 144)
+        maxScale: 140 / 144, // Same scale throughout - no variation in small room
       },
       perspectiveMovement: {
         yMovementFactor: 1.0, // Normal movement for indoor stage

@@ -1,6 +1,6 @@
 import { Sprite } from "pixi.js";
 import { Position } from "./types";
-import { CharacterSprites } from "./SpriteGenerator";
+import { CharacterSprites, Direction } from "./SpriteGenerator";
 
 export interface NPCData {
   id: string;
@@ -11,6 +11,7 @@ export interface NPCData {
   defaultAction?: string; // Default action when right-clicking (usually "talk")
   spriteType?: string; // Type of sprite to use (basic, bartender, customer, mechanic)
   interactionPoint?: Position; // Where the character should stand to interact with this NPC
+  facingDirection?: Direction; // Which direction the NPC should face (default: down)
 }
 
 interface NPCMovementState {
@@ -39,13 +40,15 @@ export class NPC {
   private walkableArea?: Position[];
   private onPositionChange?: (npcId: string, position: Position) => void;
   private currentDialogueIndex: number = 0; // Track which dialogue to show next
+  private facingDirection: Direction; // Which direction this NPC faces
 
   constructor(data: NPCData, sprites: CharacterSprites) {
     this.data = data;
     this.sprites = sprites;
+    this.facingDirection = data.facingDirection || "down"; // Use specified direction or default to down
 
-    // Create sprite with idle animation initially
-    this.sprite = new Sprite(sprites.idle);
+    // Create sprite with idle animation in the specified direction
+    this.sprite = new Sprite(sprites[this.facingDirection].idle);
 
     // Set anchor to bottom center (0.5, 1.0) so sprite aligns naturally to ground
     this.sprite.anchor.set(0.5, 1.0);
@@ -79,9 +82,9 @@ export class NPC {
       alpha: this.sprite.alpha,
       width: this.sprite.width,
       height: this.sprite.height,
-      textureValid: !!sprites.idle,
-      textureWidth: sprites.idle?.width,
-      textureHeight: sprites.idle?.height,
+      textureValid: !!sprites.down.idle,
+      textureWidth: sprites.down.idle?.width,
+      textureHeight: sprites.down.idle?.height,
     });
   }
 
@@ -187,7 +190,7 @@ export class NPC {
     if (this.currentFrame !== "talk") {
       this.currentFrame = "talk";
       // For now, use walk1 as talking animation - can be enhanced later
-      this.sprite.texture = this.sprites.walk1;
+      this.sprite.texture = this.sprites[this.facingDirection].walk1;
     }
   }
 
@@ -195,7 +198,7 @@ export class NPC {
   stopTalking(): void {
     if (this.currentFrame !== "idle") {
       this.currentFrame = "idle";
-      this.sprite.texture = this.sprites.idle;
+      this.sprite.texture = this.sprites[this.facingDirection].idle;
     }
   }
 
@@ -331,7 +334,7 @@ export class NPC {
       this.movementState.isMoving = false;
       this.animationState.isWalking = false;
       this.animationState.currentFrame = "idle";
-      this.sprite.texture = this.sprites.idle;
+      this.sprite.texture = this.sprites[this.facingDirection].idle;
       console.log(
         `NPC ${this.data.name} arrived at (${this.sprite.x.toFixed(1)}, ${this.sprite.y.toFixed(1)})`,
       );
@@ -346,7 +349,7 @@ export class NPC {
         this.animationState.currentFrame !== "talk"
       ) {
         this.animationState.currentFrame = "idle";
-        this.sprite.texture = this.sprites.idle;
+        this.sprite.texture = this.sprites[this.facingDirection].idle;
       }
       return;
     }
@@ -358,10 +361,10 @@ export class NPC {
       // Switch to next walking frame
       if (this.animationState.currentFrame === "walk1") {
         this.animationState.currentFrame = "walk2";
-        this.sprite.texture = this.sprites.walk2;
+        this.sprite.texture = this.sprites[this.facingDirection].walk2;
       } else {
         this.animationState.currentFrame = "walk1";
-        this.sprite.texture = this.sprites.walk1;
+        this.sprite.texture = this.sprites[this.facingDirection].walk1;
       }
 
       this.animationState.frameStartTime = currentTime;

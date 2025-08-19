@@ -66,9 +66,9 @@ export class NPCManager {
           spriteType,
         );
         console.log(`Successfully generated sprites for ${spriteType}:`, {
-          idle: !!sprites.idle,
-          walk1: !!sprites.walk1,
-          walk2: !!sprites.walk2,
+          idle: !!sprites.down.idle,
+          walk1: !!sprites.down.walk1,
+          walk2: !!sprites.down.walk2,
         });
         this.spriteCache.set(spriteType, sprites);
         return sprites;
