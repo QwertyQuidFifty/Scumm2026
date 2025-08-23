@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite Editor - 32x48 Monkey Island Style</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #daa520;
+            margin-bottom: 30px;
+        }
+
+        .editor-layout {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 30px;
+        }
+
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            border: 2px solid #444;
+            background-color: #2a2a2a;
+            margin-bottom: 20px;
+        }
+
+        #spriteCanvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            cursor: crosshair;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .controls-panel {
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section h3 {
+            color: #daa520;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .color-swatch {
+            width: 50px;
+            height: 30px;
+            border: 2px solid #666;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+        }
+
+        .color-swatch.selected {
+            border-color: #daa520;
+            border-width: 3px;
+        }
+
+        .color-swatch.transparent {
+            background: repeating-conic-gradient(#444 0% 25%, #666 0% 50%) 50% / 8px 8px;
+        }
+
+        .tools {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .tool-btn {
+            padding: 10px;
+            background-color: #3a3a3a;
+            border: 1px solid #666;
+            color: #e0e0e0;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .tool-btn:hover {
+            background-color: #4a4a4a;
+        }
+
+        .tool-btn.active {
+            background-color: #daa520;
+            color: #1a1a1a;
+        }
+
+        .import-export {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.2;
+            resize: vertical;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .zoom-btn {
+            padding: 5px 10px;
+            background-color: #3a3a3a;
+            border: 1px solid #666;
+            color: #e0e0e0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .zoom-btn:hover {
+            background-color: #4a4a4a;
+        }
+
+        .info {
+            font-size: 12px;
+            color: #999;
+            line-height: 1.4;
+        }
+
+        .coords {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(42, 42, 42, 0.9);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #daa520;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Sprite Editor - Monkey Island Style (32×48)</h1>
+        
+        <div class="editor-layout">
+            <div class="canvas-container">
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="changeZoom(0.5)">50%</button>
+                    <button class="zoom-btn" onclick="changeZoom(1)">100%</button>
+                    <button class="zoom-btn" onclick="changeZoom(2)">200%</button>
+                    <button class="zoom-btn" onclick="changeZoom(3)">300%</button>
+                    <button class="zoom-btn" onclick="changeZoom(4)">400%</button>
+                    <span id="currentZoom">Current: 300%</span>
+                </div>
+                
+                <div class="canvas-wrapper">
+                    <canvas id="spriteCanvas" width="960" height="1440"></canvas>
+                    <canvas class="grid-overlay" id="gridCanvas" width="960" height="1440"></canvas>
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <div class="section">
+                    <h3>🎨 Color Palette (16 Colors - EGA Style)</h3>
+                    <div class="color-palette" id="colorPalette"></div>
+                    <div class="info">Selected color: <span id="selectedColor">0 (Transparent)</span></div>
+                </div>
+
+                <div class="section">
+                    <h3>🛠️ Tools</h3>
+                    <div class="tools">
+                        <button class="tool-btn active" onclick="selectTool('pencil')" id="pencil-tool">✏️ Pencil</button>
+                        <button class="tool-btn" onclick="selectTool('fill')" id="fill-tool">🪣 Fill</button>
+                        <button class="tool-btn" onclick="selectTool('eyedropper')" id="eyedropper-tool">💉 Eyedropper</button>
+                        <button class="tool-btn" onclick="clearCanvas()">🗑️ Clear Canvas</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>💾 Import/Export</h3>
+                    <div class="import-export">
+                        <button class="tool-btn" onclick="exportSprite()">📤 Export Sprite Data</button>
+                        <textarea id="spriteData" placeholder="Paste sprite data here to import..."></textarea>
+                        <button class="tool-btn" onclick="importSprite()">📥 Import Sprite Data</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>ℹ️ Info</h3>
+                    <div class="info">
+                        • 32×48 pixels (Monkey Island quality)<br>
+                        • 16 colors (EGA compatible)<br>
+                        • Preloaded with current idle sprite<br>
+                        • Click to draw with selected color<br>
+                        • Right-click to pick color<br>
+                        • Grid shows individual pixels<br>
+                        • Export creates TypeScript arrays
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="coords" id="coords">x: 0, y: 0</div>
+
+    <script>
+        // 16-color EGA-inspired palette (Monkey Island style)
+        const colorPalette = [
+            { key: '0', color: 'transparent', name: 'Transparent' },
+            { key: '1', color: '#000000', name: 'Black' },
+            { key: '2', color: '#ffffff', name: 'White' },
+            { key: '3', color: '#2a2a2a', name: 'Dark Grey' },
+            { key: '4', color: '#4a4a4a', name: 'Medium Grey' },
+            { key: '5', color: '#6a6a6a', name: 'Light Grey' },
+            { key: '6', color: '#8b4513', name: 'Brown' },
+            { key: '7', color: '#daa520', name: 'Golden' },
+            { key: '8', color: '#ffb6c1', name: 'Light Pink' },
+            { key: '9', color: '#fdbcb4', name: 'Skin Tone' },
+            { key: 'A', color: '#654321', name: 'Dark Brown' },
+            { key: 'B', color: '#8b0000', name: 'Dark Red' },
+            { key: 'C', color: '#006400', name: 'Dark Green' },
+            { key: 'D', color: '#000080', name: 'Navy Blue' },
+            { key: 'E', color: '#800080', name: 'Purple' },
+            { key: 'F', color: '#8b4513', name: 'Leather Brown' }
+        ];
+
+        let currentTool = 'pencil';
+        let selectedColorKey = '0';
+        let zoom = 3; // 300% zoom (30px per pixel)
+        let pixelSize = 30;
+        
+        // Default sprite data - Down-facing idle sprite
+        let spriteData = [
+            "00000000000000000000000000000000".split(''),
+            "00000000000000000000000000000000".split(''),
+            "00000000000000000000000000000000".split(''),
+            "00000000000000000000000000000000".split(''),
+            "00000000003777777777770000000000".split(''),
+            "00000000377777777777773000000000".split(''),
+            "00000007777777777777777700000000".split(''),
+            "00000077777777777777777770000000".split(''),
+            "00000078666666666666666870000000".split(''),
+            "00000078888888888888888870000000".split(''),
+            "00000078888888888888888870000000".split(''),
+            "00000078888833888833888870000000".split(''),
+            "00000078888888888888888870000000".split(''),
+            "00000078888888888888888870000000".split(''),
+            "00000078888888888888888870000000".split(''),
+            "00000070666666666666666070000000".split(''),
+            "00000007066666666666660700000000".split(''),
+            "00000000044444444444440000000000".split(''),
+            "00000000444444444444444000000000".split(''),
+            "00000004444444444444444400000000".split(''),
+            "00000044444444444444444440000000".split(''),
+            "00000444444444444444444444000000".split(''),
+            "00000444444444444444444444000000".split(''),
+            "00000545444444444444444545500000".split(''),
+            "00000545444444444444444545500000".split(''),
+            "00000353444444444444444353000000".split(''),
+            "00000353444444444444444353000000".split(''),
+            "00000333555555555555555333000000".split(''),
+            "00000333555555555555555333000000".split(''),
+            "00000003344444444444443300000000".split(''),
+            "00000003344444444444443300000000".split(''),
+            "00000004444444444444444000000000".split(''),
+            "00000004444444444444444000000000".split(''),
+            "00000004444444444444444000000000".split(''),
+            "00000004444444444444444000000000".split(''),
+            "00000004444444444444444000000000".split(''),
+            "00000004444444444444444000000000".split(''),
+            "00000004333333333333334400000000".split(''),
+            "00000004333333333333334400000000".split(''),
+            "00000003333333333333333000000000".split(''),
+            "00000003333333333333333000000000".split(''),
+            "00000033333333333333333300000000".split(''),
+            "00000033333333333333333300000000".split(''),
+            "00000033000000000000003300000000".split(''),
+            "00000033000000000000003300000000".split(''),
+            "00000000000000000000000000000000".split(''),
+            "00000000000000000000000000000000".split(''),
+            "00000000000000000000000000000000".split('')
+        ];
+
+        const canvas = document.getElementById('spriteCanvas');
+        const ctx = canvas.getContext('2d');
+        const gridCanvas = document.getElementById('gridCanvas');
+        const gridCtx = gridCanvas.getContext('2d');
+
+        // Initialize
+        function init() {
+            createColorPalette();
+            drawGrid();
+            redrawCanvas();
+            
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+            
+            // Track mouse position
+            canvas.addEventListener('mousemove', updateCoordinates);
+        }
+
+        function createColorPalette() {
+            const paletteDiv = document.getElementById('colorPalette');
+            paletteDiv.innerHTML = '';
+
+            colorPalette.forEach((color, index) => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                if (color.color === 'transparent') {
+                    swatch.classList.add('transparent');
+                } else {
+                    swatch.style.backgroundColor = color.color;
+                }
+                swatch.textContent = color.key;
+                swatch.title = color.name;
+                
+                if (color.key === selectedColorKey) {
+                    swatch.classList.add('selected');
+                }
+                
+                swatch.addEventListener('click', () => selectColor(color.key));
+                paletteDiv.appendChild(swatch);
+            });
+        }
+
+        function selectColor(colorKey) {
+            selectedColorKey = colorKey;
+            createColorPalette(); // Refresh to show selection
+            
+            const color = colorPalette.find(c => c.key === colorKey);
+            document.getElementById('selectedColor').textContent = `${colorKey} (${color.name})`;
+        }
+
+        function selectTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tool + '-tool').classList.add('active');
+        }
+
+        function drawGrid() {
+            gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+            gridCtx.strokeStyle = '#666';
+            gridCtx.lineWidth = 1;
+
+            // Vertical lines
+            for (let x = 0; x <= 32; x++) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(x * pixelSize, 0);
+                gridCtx.lineTo(x * pixelSize, 48 * pixelSize);
+                gridCtx.stroke();
+            }
+
+            // Horizontal lines
+            for (let y = 0; y <= 48; y++) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(0, y * pixelSize);
+                gridCtx.lineTo(32 * pixelSize, y * pixelSize);
+                gridCtx.stroke();
+            }
+        }
+
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let y = 0; y < 48; y++) {
+                for (let x = 0; x < 32; x++) {
+                    const colorKey = spriteData[y][x];
+                    const color = colorPalette.find(c => c.key === colorKey);
+                    
+                    if (color && color.color !== 'transparent') {
+                        ctx.fillStyle = color.color;
+                        ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                    }
+                }
+            }
+        }
+
+        function getPixelPosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / pixelSize);
+            const y = Math.floor((e.clientY - rect.top) / pixelSize);
+            return { x: Math.max(0, Math.min(31, x)), y: Math.max(0, Math.min(47, y)) };
+        }
+
+        function handleMouseDown(e) {
+            const pos = getPixelPosition(e);
+            
+            if (e.button === 2) { // Right click - eyedropper
+                const colorKey = spriteData[pos.y][pos.x];
+                selectColor(colorKey);
+                return;
+            }
+            
+            if (currentTool === 'pencil') {
+                spriteData[pos.y][pos.x] = selectedColorKey;
+                redrawCanvas();
+            } else if (currentTool === 'fill') {
+                floodFill(pos.x, pos.y, spriteData[pos.y][pos.x], selectedColorKey);
+                redrawCanvas();
+            } else if (currentTool === 'eyedropper') {
+                const colorKey = spriteData[pos.y][pos.x];
+                selectColor(colorKey);
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (e.buttons === 1 && currentTool === 'pencil') { // Left mouse button held down
+                const pos = getPixelPosition(e);
+                spriteData[pos.y][pos.x] = selectedColorKey;
+                redrawCanvas();
+            }
+        }
+
+        function updateCoordinates(e) {
+            const pos = getPixelPosition(e);
+            document.getElementById('coords').textContent = `x: ${pos.x}, y: ${pos.y}`;
+        }
+
+        function floodFill(x, y, targetColor, fillColor) {
+            if (targetColor === fillColor) return;
+            if (x < 0 || x >= 32 || y < 0 || y >= 48) return;
+            if (spriteData[y][x] !== targetColor) return;
+
+            spriteData[y][x] = fillColor;
+            
+            floodFill(x + 1, y, targetColor, fillColor);
+            floodFill(x - 1, y, targetColor, fillColor);
+            floodFill(x, y + 1, targetColor, fillColor);
+            floodFill(x, y - 1, targetColor, fillColor);
+        }
+
+        function clearCanvas() {
+            if (confirm('Clear the entire canvas?')) {
+                spriteData = new Array(48).fill(null).map(() => new Array(32).fill('0'));
+                redrawCanvas();
+            }
+        }
+
+        function exportSprite() {
+            const output = spriteData.map(row => `"${row.join('')}",`).join('\n');
+            const wrappedOutput = `[\n${output}\n]`;
+            
+            document.getElementById('spriteData').value = wrappedOutput;
+            document.getElementById('spriteData').select();
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(wrappedOutput).then(() => {
+                alert('Sprite data exported and copied to clipboard!');
+            });
+        }
+
+        function importSprite() {
+            const input = document.getElementById('spriteData').value.trim();
+            
+            try {
+                // Parse the input - handle both array format and line format
+                let lines;
+                if (input.startsWith('[')) {
+                    // Array format: ["line1", "line2", ...]
+                    const cleaned = input.replace(/^\[|\]$/g, '').trim();
+                    lines = cleaned.split(',').map(line => 
+                        line.trim().replace(/^"|"$/g, '').replace(/,$/, '')
+                    );
+                } else {
+                    // Simple line format
+                    lines = input.split('\n').map(line => line.trim()).filter(line => line);
+                }
+
+                if (lines.length !== 48) {
+                    alert(`Expected 48 rows, got ${lines.length}`);
+                    return;
+                }
+
+                const newSpriteData = [];
+                for (let i = 0; i < 48; i++) {
+                    const line = lines[i];
+                    if (line.length !== 32) {
+                        alert(`Row ${i + 1} has ${line.length} characters, expected 32`);
+                        return;
+                    }
+                    
+                    // Validate characters
+                    const validChars = colorPalette.map(c => c.key);
+                    for (let char of line) {
+                        if (!validChars.includes(char)) {
+                            alert(`Invalid character '${char}' in row ${i + 1}. Valid characters: ${validChars.join(', ')}`);
+                            return;
+                        }
+                    }
+                    
+                    newSpriteData.push(line.split(''));
+                }
+
+                spriteData = newSpriteData;
+                redrawCanvas();
+                alert('Sprite imported successfully!');
+                
+            } catch (error) {
+                alert('Error parsing sprite data: ' + error.message);
+            }
+        }
+
+        function changeZoom(newZoom) {
+            zoom = newZoom;
+            pixelSize = 30 * zoom;
+            
+            canvas.width = 32 * pixelSize;
+            canvas.height = 48 * pixelSize;
+            gridCanvas.width = 32 * pixelSize;
+            gridCanvas.height = 48 * pixelSize;
+            
+            drawGrid();
+            redrawCanvas();
+            
+            document.getElementById('currentZoom').textContent = `Current: ${Math.round(zoom * 100)}%`;
+        }
+
+        // Initialize the editor
+        init();
+    </script>
+</body>
+</html>
