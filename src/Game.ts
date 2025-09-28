@@ -129,6 +129,56 @@ export class Game {
     canvas.style.display = "block";
     canvas.style.width = "1230px"; // Updated to match new canvas width with right padding
     canvas.style.height = "808px"; // Extended to accommodate action bar above background
+
+    // Set up resize observer to handle responsive scaling
+    this.setupResponsiveHandling();
+  }
+
+  private setupResponsiveHandling(): void {
+    // Detect initial scale and set up resize observer for future changes
+    this.updateUIScale();
+
+    // Listen for window resize events to update scale
+    window.addEventListener("resize", () => {
+      this.updateUIScale();
+    });
+  }
+
+  private updateUIScale(): void {
+    // Get the current computed transform scale
+    const container = document.getElementById("pixi-container");
+    if (!container) return;
+
+    const computedStyle = window.getComputedStyle(container);
+    const transform = computedStyle.transform;
+
+    let currentScale = 1;
+    if (transform && transform !== "none") {
+      const matrix = transform.match(/matrix\(([^)]+)\)/);
+      if (matrix) {
+        const values = matrix[1].split(",");
+        currentScale = parseFloat(values[0]) || 1;
+      }
+    }
+
+    // Store the current scale for use by UI components if needed
+    this.scale = currentScale;
+
+    // You can add logic here to adjust UI elements based on scale
+    // For example, scaling font sizes or button sizes for very small screens
+    if (currentScale <= 0.6) {
+      // Mobile portrait - could adjust UI here if needed
+      console.log("Mobile portrait mode detected (scale: " + currentScale + ")");
+    } else if (currentScale <= 0.75) {
+      // Mobile landscape / small tablet
+      console.log("Mobile landscape mode detected (scale: " + currentScale + ")");
+    } else if (currentScale <= 0.9) {
+      // Large tablet
+      console.log("Tablet mode detected (scale: " + currentScale + ")");
+    } else {
+      // Desktop
+      console.log("Desktop mode detected (scale: " + currentScale + ")");
+    }
   }
 
   private setupInput(): void {

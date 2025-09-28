@@ -14,12 +14,12 @@ export class AssetManager {
   private assets: AssetDefinition[] = [
     {
       name: "cyberpunk",
-      url: "/assets/cyberpunk.png",
+      url: "./assets/cyberpunk.png",
       type: "image",
     },
     {
       name: "mechstore",
-      url: "/assets/mechstore-copilot.png",
+      url: "./assets/mechstore-copilot.png",
       type: "image",
     },
   ];

@@ -121,7 +121,7 @@ export class StageOverlayAssets {
         zIndexType: "inline", // Y-position based depth like NPCs
         visible: true, // Visible by default (it's a static object)
         assetType: "png",
-        pngPath: "/assets/stool-small.png",
+        pngPath: "./assets/stool-small.png",
       },
     ];
   }

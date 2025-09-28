@@ -16,7 +16,36 @@ body {
 }
 
 #pixi-container {
-    width: 1024px;
-    height: 768px;
+    width: 1230px;
+    height: 808px;
     display: block;
+    transform-origin: center center;
+}
+
+/* Mobile portrait (up to 768px wide) */
+@media (max-width: 768px) {
+    #pixi-container {
+        transform: scale(0.6);
+    }
+}
+
+/* Mobile landscape and small tablets (769px to 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    #pixi-container {
+        transform: scale(0.75);
+    }
+}
+
+/* Large tablets and small desktops (1025px to 1229px) */
+@media (min-width: 1025px) and (max-width: 1229px) {
+    #pixi-container {
+        transform: scale(0.9);
+    }
+}
+
+/* Desktop (1230px and up) - original size */
+@media (min-width: 1230px) {
+    #pixi-container {
+        transform: scale(1);
+    }
 }
