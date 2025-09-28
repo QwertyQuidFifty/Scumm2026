@@ -22,28 +22,80 @@ body {
     transform-origin: center center;
 }
 
-/* Mobile portrait (up to 768px wide) */
-@media (max-width: 768px) {
+/* Rotation message for portrait mode */
+.rotate-message {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000000;
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.rotate-content {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.87);
+    font-family: 'Courier New', monospace;
+}
+
+.rotate-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    animation: rotate-pulse 2s infinite;
+}
+
+.rotate-content h2 {
+    font-size: 1.5rem;
+    margin: 1rem 0;
+    color: #aa00ff;
+}
+
+.rotate-content p {
+    font-size: 1rem;
+    margin: 0.5rem 0;
+    opacity: 0.8;
+}
+
+@keyframes rotate-pulse {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(10deg) scale(1.1); }
+}
+
+/* Show rotate message on mobile portrait */
+@media (max-width: 768px) and (orientation: portrait) {
+    .rotate-message {
+        display: flex;
+    }
+
+    #pixi-container {
+        display: none;
+    }
+}
+
+/* Responsive scaling for landscape mode only */
+@media (min-width: 480px) and (max-width: 768px) and (orientation: landscape) {
     #pixi-container {
         transform: scale(0.6);
     }
 }
 
-/* Mobile landscape and small tablets (769px to 1024px) */
 @media (min-width: 769px) and (max-width: 1024px) {
     #pixi-container {
         transform: scale(0.75);
     }
 }
 
-/* Large tablets and small desktops (1025px to 1229px) */
 @media (min-width: 1025px) and (max-width: 1229px) {
     #pixi-container {
         transform: scale(0.9);
     }
 }
 
-/* Desktop (1230px and up) - original size */
 @media (min-width: 1230px) {
     #pixi-container {
         transform: scale(1);
