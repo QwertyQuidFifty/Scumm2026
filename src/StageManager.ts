@@ -200,7 +200,7 @@ export class StageManager {
       perspectiveScale: {
         minY: 600, // At bar door position (background)
         maxY: 713, // At cryptic door position (foreground)
-        minScale: 100 / 144, // Scale factor for 100px height at bar door (100 / sprite height 144)
+        minScale: 50 / 144, // Scale factor for 50px height at bar door (50 / sprite height 144)
         maxScale: 200 / 144, // Scale factor for 200px height at cryptic door (200 / sprite height 144)
       },
       perspectiveMovement: {
