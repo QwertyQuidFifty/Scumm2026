@@ -265,8 +265,8 @@ export class StageManager {
       perspectiveScale: {
         minY: 613, // At back of room
         maxY: 772, // At front of room
-        minScale: 140 / 144, // Fixed scale for 140px height (140 / sprite height 144)
-        maxScale: 140 / 144, // Same scale throughout - no variation in small room
+        minScale: 260 / 144, // Fixed scale for 260px height (260 / sprite height 144)
+        maxScale: 260 / 144, // Same scale throughout - no variation in small room
       },
       perspectiveMovement: {
         yMovementFactor: 1.0, // Normal movement for indoor stage
