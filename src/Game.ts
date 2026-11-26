@@ -168,10 +168,14 @@ export class Game {
     // For example, scaling font sizes or button sizes for very small screens
     if (currentScale <= 0.6) {
       // Mobile portrait - could adjust UI here if needed
-      console.log("Mobile portrait mode detected (scale: " + currentScale + ")");
+      console.log(
+        "Mobile portrait mode detected (scale: " + currentScale + ")",
+      );
     } else if (currentScale <= 0.75) {
       // Mobile landscape / small tablet
-      console.log("Mobile landscape mode detected (scale: " + currentScale + ")");
+      console.log(
+        "Mobile landscape mode detected (scale: " + currentScale + ")",
+      );
     } else if (currentScale <= 0.9) {
       // Large tablet
       console.log("Tablet mode detected (scale: " + currentScale + ")");
@@ -1288,7 +1292,7 @@ export class Game {
       this.speechBubble.showSpeech(selectedResponse.text, 1500, 0xffffff); // White text, 1.5 seconds
       this.speechBubble.positionAboveCharacter(
         this.characterSprite.x,
-        this.characterSprite.y,
+        this.characterSprite.y - 60, // Use same offset as NPCs for consistency
         this.config.gameHeight,
       );
 
@@ -1671,7 +1675,7 @@ export class Game {
               );
               this.speechBubble.positionAboveCharacter(
                 this.characterSprite.x,
-                this.characterSprite.y,
+                this.characterSprite.y - 60, // Use same offset as NPCs for consistency
                 this.config.gameHeight,
               );
             }
@@ -1708,7 +1712,7 @@ export class Game {
         this.speechBubble.showSpeech(response.text);
         this.speechBubble.positionAboveCharacter(
           this.characterSprite.x,
-          this.characterSprite.y,
+          this.characterSprite.y - 60, // Use same offset as NPCs for consistency
           this.config.gameHeight,
         );
       }
@@ -1738,7 +1742,7 @@ export class Game {
           this.speechBubble.showSpeech(fallbackText);
           this.speechBubble.positionAboveCharacter(
             this.characterSprite.x,
-            this.characterSprite.y,
+            this.characterSprite.y - 60, // Use same offset as NPCs for consistency
             this.config.gameHeight,
           );
         }
@@ -1912,7 +1916,7 @@ export class Game {
         this.speechBubble.showSpeech(response.text);
         this.speechBubble.positionAboveCharacter(
           this.characterSprite.x,
-          this.characterSprite.y,
+          this.characterSprite.y - 60, // Use same offset as NPCs for consistency
           this.config.gameHeight,
         );
       }
@@ -1925,7 +1929,7 @@ export class Game {
         this.speechBubble.showSpeech(fallbackText);
         this.speechBubble.positionAboveCharacter(
           this.characterSprite.x,
-          this.characterSprite.y,
+          this.characterSprite.y - 60, // Use same offset as NPCs for consistency
           this.config.gameHeight,
         );
       }
