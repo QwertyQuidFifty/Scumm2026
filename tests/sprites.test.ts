@@ -12,7 +12,20 @@ import {
 import { CHARACTER_DESIGNS, PLAYER_DESIGN } from "../src/sprites/designs.ts";
 
 const DIRECTIONS = ["up", "down", "left", "right"] as const;
-const FRAME_NAMES = ["idle", "walk1", "walk2", "walk3", "walk4"];
+const WALK_NAMES = ["idle", "walk1", "walk2", "walk3", "walk4"];
+const TALK_NAMES = ["talk1", "talk2", "talk3"];
+const FRAME_NAMES = [...WALK_NAMES, ...TALK_NAMES];
+
+/** One frame's pixel rows joined into a single string, for comparison. */
+function frameData(
+  frames: ReturnType<typeof buildCharacterFrames>,
+  dir: (typeof DIRECTIONS)[number],
+  name: string,
+): string {
+  const frame = frames[dir].find((f) => f.name === name);
+  assert.ok(frame, `${dir}/${name} missing`);
+  return frame.data.join("\n");
+}
 
 const designs: [string, CharacterDesign][] = [
   ["player", PLAYER_DESIGN],
@@ -23,7 +36,7 @@ for (const [name, design] of designs) {
   describe(`${name} design`, () => {
     const frames = buildCharacterFrames(design);
 
-    test("has idle + 4 walk frames in every direction", () => {
+    test("has idle, 4 walk and 3 talk frames in every direction", () => {
       for (const dir of DIRECTIONS) {
         assert.deepEqual(
           frames[dir].map((f) => f.name),
@@ -73,8 +86,27 @@ for (const [name, design] of designs) {
 
     test("walk frames differ from idle and from each other", () => {
       for (const dir of DIRECTIONS) {
-        const joined = frames[dir].map((f) => f.data.join("\n"));
+        const joined = WALK_NAMES.map((n) => frameData(frames, dir, n));
         assert.equal(new Set(joined).size, joined.length, dir);
+      }
+    });
+
+    test("talk frames are distinct poses wherever the face is visible", () => {
+      for (const dir of ["down", "left", "right"] as const) {
+        const joined = ["idle", ...TALK_NAMES].map((n) =>
+          frameData(frames, dir, n),
+        );
+        assert.equal(new Set(joined).size, joined.length, dir);
+      }
+    });
+
+    test("talk frames keep the legs exactly as in idle", () => {
+      for (const dir of DIRECTIONS) {
+        const legs = (n: string) =>
+          frameData(frames, dir, n).split("\n").slice(34).join("\n");
+        for (const n of TALK_NAMES) {
+          assert.equal(legs(n), legs("idle"), `${dir}/${n}`);
+        }
       }
     });
 

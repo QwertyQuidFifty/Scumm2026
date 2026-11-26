@@ -471,6 +471,8 @@ const MECHANIC_SLEEVE: ArmStyle = {
 };
 
 export const MECHANIC_DESIGN: CharacterDesign = {
+  // His mouth is covered, so the respirator vents glow amber when he talks.
+  talkSwap: { q: "V" },
   palette: {
     K: 0x16121a,
     L: 0xb0ffc0, // mohawk highlight

@@ -53,6 +53,12 @@ export interface ArmStyle {
 
 export interface CharacterDesign {
   palette: Record<string, number>;
+  /**
+   * How the head changes in talk frames with the mouth open. By default
+   * the mouth ('r') becomes a dark opening with the lip dropped a row; a
+   * design can instead recolour keys, e.g. a respirator that glows.
+   */
+  talkSwap?: Record<string, string>;
   head: PartViews;
   torso: PartViews;
   arms: {
@@ -225,30 +231,62 @@ function legSide(d: CharacterDesign, joints: Joints, far: boolean): Layer {
   return [...limb(joints, width, far ? shade : base, shade), ...boot];
 }
 
+/**
+ * Where the hand sits relative to the wrist: hanging below it, or at the end
+ * of a raised forearm pointing right (+1) or left (-1).
+ */
+type HandPlacement = "below" | 1 | -1;
+
 function arm(
   d: CharacterDesign,
   style: ArmStyle,
   joints: Joints,
   far: boolean,
+  hand: HandPlacement = "below",
 ): Layer {
   const base = far ? style.shade : style.base;
   const sleeve = limb(joints, d.arms.width, base, style.shade);
-  const wrist = joints[2];
-  const handX = wrist[0] - Math.floor(gridWidth(style.hand) / 2);
-  return [...sleeve, ...grid(style.hand, handX, wrist[1] + 1)];
+  const [wx, wy] = joints[2];
+  const handW = gridWidth(style.hand);
+  const half = Math.floor(d.arms.width / 2);
+  const handPos: Point =
+    hand === "below"
+      ? [wx - Math.floor(handW / 2), wy + 1]
+      : hand > 0
+        ? [wx + half + 1, wy - 1]
+        : [wx - half - handW, wy - 1];
+  return [...sleeve, ...grid(style.hand, handPos[0], handPos[1])];
 }
 
 // ---------------------------------------------------------------------------
 // Poses
 // ---------------------------------------------------------------------------
 
-type FrameName = "idle" | "walk1" | "walk2" | "walk3" | "walk4";
-const FRAME_NAMES: FrameName[] = ["idle", "walk1", "walk2", "walk3", "walk4"];
+export type FrameName =
+  | "idle"
+  | "walk1"
+  | "walk2"
+  | "walk3"
+  | "walk4"
+  | "talk1"
+  | "talk2"
+  | "talk3";
+export const FRAME_NAMES: FrameName[] = [
+  "idle",
+  "walk1",
+  "walk2",
+  "walk3",
+  "walk4",
+  "talk1",
+  "talk2",
+  "talk3",
+];
 
 /**
  * Per-frame pose parameters. Contact frames (walk1/walk3) have one leg
  * forward; passing frames (walk2/walk4) lift the swinging leg and raise the
- * body by 1px.
+ * body by 1px. Talk frames open the mouth and/or raise a hand in a gesture
+ * (talk1: mouth open; talk2: open + gesture; talk3: closed + gesture).
  */
 interface Pose {
   bob: number; // vertical body offset (negative = up)
@@ -258,6 +296,8 @@ interface Pose {
   rightHand: number;
   stride: number; // side view: -1 near leg back, 0 together, 1 near leg forward
   passing: boolean;
+  mouthOpen?: boolean;
+  gesture?: boolean;
 }
 
 // prettier-ignore
@@ -267,7 +307,30 @@ const POSES: Record<FrameName, Pose> = {
   walk2: { bob: -1, leftLift: 0, rightLift: 3, leftHand: 0, rightHand: 0, stride: 1,  passing: true },
   walk3: { bob: 0,  leftLift: 2, rightLift: 0, leftHand: 1, rightHand: 0, stride: -1, passing: false },
   walk4: { bob: -1, leftLift: 3, rightLift: 0, leftHand: 0, rightHand: 0, stride: -1, passing: true },
+  talk1: { bob: 0,  leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0,  passing: false, mouthOpen: true },
+  talk2: { bob: 0,  leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0,  passing: false, mouthOpen: true, gesture: true },
+  talk3: { bob: 0,  leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0,  passing: false, gesture: true },
 };
+
+/** The head grid with the mouth open (see CharacterDesign.talkSwap). */
+function openMouth(d: CharacterDesign, rows: string[]): string[] {
+  if (d.talkSwap) {
+    const swap = d.talkSwap;
+    return rows.map((r) => [...r].map((c) => swap[c] ?? c).join(""));
+  }
+  const out = rows.map((r) => [...r]);
+  rows.forEach((row, y) => {
+    [...row].forEach((c, x) => {
+      if (c !== "r") return;
+      out[y][x] = OUTLINE;
+      const below = out[y + 1]?.[x];
+      if (below !== undefined && below !== "." && below !== "r") {
+        out[y + 1][x] = "r";
+      }
+    });
+  });
+  return out.map((r) => r.join(""));
+}
 
 function frontOrBack(d: CharacterDesign, pose: Pose, back: boolean): string[] {
   const b = pose.bob;
@@ -279,7 +342,8 @@ function frontOrBack(d: CharacterDesign, pose: Pose, back: boolean): string[] {
     legFront(d, SPRITE_WIDTH - 1 - lx, d.legs.hipY + b, pose.rightLift),
   );
 
-  const headRows = back ? d.head.back : d.head.front;
+  let headRows = back ? d.head.back : d.head.front;
+  if (pose.mouthOpen && !back) headRows = openMouth(d, headRows);
   const torsoRows = back ? d.torso.back : d.torso.front;
   canvas.stamp(grid(headRows, centred(headRows), d.head.y + b));
   canvas.stamp(grid(torsoRows, centred(torsoRows), d.torso.y + b));
@@ -302,16 +366,26 @@ function frontOrBack(d: CharacterDesign, pose: Pose, back: boolean): string[] {
       false,
     ),
   );
+  // Gesture: the screen-right forearm swings in across the body.
+  const rightArm: Joints =
+    pose.gesture && !back
+      ? [
+          [rx, shoulderY + b],
+          [rx + 1, elbowY + b],
+          [rx - 2, elbowY + b + 2],
+        ]
+      : [
+          [rx, shoulderY + b],
+          [rx + 1, elbowY + b],
+          [rx + 1, wristY + b + pose.rightHand],
+        ];
   canvas.stamp(
     arm(
       d,
       screenRight,
-      [
-        [rx, shoulderY + b],
-        [rx + 1, elbowY + b],
-        [rx + 1, wristY + b + pose.rightHand],
-      ],
+      rightArm,
       back, // light comes from the top-left, so shade this arm from behind
+      pose.gesture && !back ? -1 : "below",
     ),
   );
   return canvas.rows();
@@ -388,13 +462,22 @@ function side(
   canvas.stamp(legSide(d, nearLeg, false));
   const view = (part: PartViews): string[] =>
     rightSide && part.sideRight ? part.sideRight : part.side;
-  canvas.stamp(grid(view(d.head), d.head.sideX, d.head.y + b));
+  const headRows = pose.mouthOpen ? openMouth(d, view(d.head)) : view(d.head);
+  canvas.stamp(grid(headRows, d.head.sideX, d.head.y + b));
   canvas.stamp(grid(view(d.torso), d.torso.sideX, d.torso.y + b));
-  canvas.stamp(arm(d, near, armJoints(sideX, swing), false));
+  // Gesture: the near forearm comes up and forward, palm out.
+  const nearArm: Joints = pose.gesture
+    ? [
+        [sideX, shoulderY + b],
+        [sideX + 1, elbowY + b],
+        [sideX + 4, elbowY + b + 1],
+      ]
+    : armJoints(sideX, swing);
+  canvas.stamp(arm(d, near, nearArm, false, pose.gesture ? 1 : "below"));
   return canvas.rows();
 }
 
-/** Build all frames for a design: 4 directions x (idle + 4 walk frames). */
+/** Build all frames for a design: 4 directions x (idle, 4 walk, 3 talk frames). */
 export function buildCharacterFrames(
   d: CharacterDesign,
 ): Record<SpriteDirection, PixelFrame[]> {

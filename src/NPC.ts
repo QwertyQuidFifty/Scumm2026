@@ -22,6 +22,12 @@ interface NPCMovementState {
   duration: number;
 }
 
+/** Mouth flap pattern for talking (1 = open), one step per MOUTH_STEP_MS. */
+const MOUTH_PATTERN = [1, 0, 1, 1, 0, 1, 0, 0, 1, 0];
+const MOUTH_STEP_MS = 120;
+/** How long each hand gesture / rest phase lasts while talking. */
+const GESTURE_PHASE_MS = 900;
+
 interface NPCAnimationState {
   currentFrame: "idle" | "walk1" | "walk2" | "talk";
   frameStartTime: number;
@@ -34,6 +40,8 @@ export class NPC {
   private data: NPCData;
   private sprites: CharacterSprites;
   private currentFrame: "idle" | "talk" = "idle";
+  /** When the current talk started (set on the first update after startTalking). */
+  private talkStartTime: number | null = null;
   private movementState: NPCMovementState;
   private animationState: NPCAnimationState;
   private moveSpeed: number = 120; // Slightly slower than player for NPCs
@@ -189,8 +197,10 @@ export class NPC {
   startTalking(): void {
     if (this.currentFrame !== "talk") {
       this.currentFrame = "talk";
-      // For now, use walk1 as talking animation - can be enhanced later
-      this.sprite.texture = this.sprites[this.facingDirection].walk1;
+      this.talkStartTime = null;
+      if (!this.animationState.isWalking) {
+        this.sprite.texture = this.sprites[this.facingDirection].talk1;
+      }
     }
   }
 
@@ -198,8 +208,39 @@ export class NPC {
   stopTalking(): void {
     if (this.currentFrame !== "idle") {
       this.currentFrame = "idle";
-      this.sprite.texture = this.sprites[this.facingDirection].idle;
+      this.talkStartTime = null;
+      if (!this.animationState.isWalking) {
+        this.sprite.texture = this.sprites[this.facingDirection].idle;
+      }
     }
+  }
+
+  isTalking(): boolean {
+    return this.currentFrame === "talk";
+  }
+
+  /**
+   * Pick the talk frame: the mouth flaps quickly in an irregular pattern
+   * while a hand gesture comes and goes more slowly.
+   */
+  private updateTalking(currentTime: number): void {
+    if (this.talkStartTime === null) this.talkStartTime = currentTime;
+    const elapsed = currentTime - this.talkStartTime;
+    const mouthOpen =
+      MOUTH_PATTERN[
+        Math.floor(elapsed / MOUTH_STEP_MS) % MOUTH_PATTERN.length
+      ] === 1;
+    const gesturing = Math.floor(elapsed / GESTURE_PHASE_MS) % 2 === 1;
+
+    const frames = this.sprites[this.facingDirection];
+    const texture = gesturing
+      ? mouthOpen
+        ? frames.talk2
+        : frames.talk3
+      : mouthOpen
+        ? frames.talk1
+        : frames.idle;
+    if (this.sprite.texture !== texture) this.sprite.texture = texture;
   }
 
   // Set walkable area for pathfinding
@@ -342,6 +383,11 @@ export class NPC {
   }
 
   private updateAnimation(currentTime: number): void {
+    if (!this.animationState.isWalking && this.currentFrame === "talk") {
+      this.updateTalking(currentTime);
+      return;
+    }
+
     if (!this.animationState.isWalking) {
       // Make sure we're showing idle when not walking
       if (

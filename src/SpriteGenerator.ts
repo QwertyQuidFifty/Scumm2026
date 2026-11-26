@@ -19,6 +19,9 @@ export interface DirectionalFrames {
   walk2: Texture;
   walk3: Texture;
   walk4: Texture;
+  talk1: Texture; // mouth open
+  talk2: Texture; // mouth open + hand gesture
+  talk3: Texture; // mouth closed + hand gesture
 }
 
 export interface CharacterSprites {
