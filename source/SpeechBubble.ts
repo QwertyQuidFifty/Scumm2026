@@ -1,9 +1,13 @@
 import { Container, Text, TextStyle } from "pixi.js";
 
+/** Whose line is being shown: the player's, or anyone else's. */
+export type SpeechSpeaker = "player" | "other";
+
 export class SpeechBubble extends Container {
   private speechText!: Text;
   private textStyle!: TextStyle;
   private isVisible: boolean = false;
+  private speaker: SpeechSpeaker = "other";
   private hideTimer?: number;
 
   private readonly textColor: number = 0xffffff; // White text
@@ -46,7 +50,9 @@ export class SpeechBubble extends Container {
     text: string,
     duration: number = 3000,
     textColor: number = 0xffffff,
+    speaker: SpeechSpeaker = "other",
   ): void {
+    this.speaker = speaker;
     // Clear any existing timer
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
@@ -87,6 +93,11 @@ export class SpeechBubble extends Container {
 
   isShowing(): boolean {
     return this.isVisible;
+  }
+
+  /** Who the text currently (or last) shown belongs to. */
+  getSpeaker(): SpeechSpeaker {
+    return this.speaker;
   }
 
   positionAboveCharacter(

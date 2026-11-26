@@ -2,6 +2,7 @@ import { Sprite } from "pixi.js";
 import { Position } from "./types";
 import { CharacterSprites, Direction } from "./SpriteGenerator";
 import { InteractiveObject } from "./InteractiveObject";
+import { talkFrameAt } from "./TalkAnimation";
 
 interface MovementState {
   isMoving: boolean;
@@ -27,6 +28,10 @@ export class CharacterController {
   private moveSpeed: number = 180; // pixels per second (increased 50% from 120 for better feel)
   private walkableArea?: Position[]; // The street polygon
   private moveCallback?: (position: Position) => void; // Callback for position updates
+  /** Reports whether the player's own speech is currently shown. */
+  private isSpeaking?: () => boolean;
+  /** When the current speech started (null when not talking). */
+  private talkStartTime: number | null = null;
   // Interaction points for each object (within walkable area) - adjusted for background offset
   private interactionPoints: Map<string, Position> = new Map([
     ["hotel-sign", { x: 202, y: 657 }], // Near hotel sign, on street (617 + 40)
@@ -239,6 +244,26 @@ export class CharacterController {
   }
 
   private updateAnimation(currentTime: number): void {
+    // Talking (only while standing still): mouth and gesture animation.
+    if (!this.animationState.isWalking && this.isSpeaking?.()) {
+      if (this.talkStartTime === null) this.talkStartTime = currentTime;
+      const frame = talkFrameAt(currentTime - this.talkStartTime);
+      const direction = this.animationState.currentDirection;
+      const texture = this.sprites[direction][frame];
+      if (this.sprite.texture !== texture) this.sprite.texture = texture;
+      return;
+    }
+    if (this.talkStartTime !== null) {
+      // Speech just ended (or we started walking): drop back to idle now.
+      this.talkStartTime = null;
+      if (!this.animationState.isWalking) {
+        this.animationState.currentFrame = "idle";
+        this.sprite.texture =
+          this.sprites[this.animationState.currentDirection].idle;
+        this.animationState.frameStartTime = currentTime;
+      }
+    }
+
     const elapsed = currentTime - this.animationState.frameStartTime;
 
     if (elapsed >= this.animationState.frameDuration) {
@@ -313,6 +338,24 @@ export class CharacterController {
 
   setYMovementFactor(factor: number): void {
     this.yMovementFactor = Math.max(0.1, Math.min(1.0, factor)); // Clamp between 0.1 and 1.0
+  }
+
+  /** Supply a check for whether the player's own speech is on screen. */
+  setSpeakingCheck(check: () => boolean): void {
+    this.isSpeaking = check;
+  }
+
+  /** Turn (without moving) to face a point, e.g. the NPC being talked to. */
+  faceTowards(target: Position): void {
+    const direction = this.calculateDirection(
+      { x: this.sprite.x, y: this.sprite.y },
+      target,
+    );
+    this.updateDirection(direction);
+  }
+
+  getDirection(): Direction {
+    return this.animationState.currentDirection;
   }
 
   setMoveCallback(callback: (position: Position) => void): void {

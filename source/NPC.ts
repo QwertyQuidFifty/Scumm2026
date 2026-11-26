@@ -1,6 +1,7 @@
 import { Sprite } from "pixi.js";
 import { Position } from "./types";
 import { CharacterSprites, Direction } from "./SpriteGenerator";
+import { talkFrameAt } from "./TalkAnimation";
 
 export interface NPCData {
   id: string;
@@ -21,12 +22,6 @@ interface NPCMovementState {
   startTime: number;
   duration: number;
 }
-
-/** Mouth flap pattern for talking (1 = open), one step per MOUTH_STEP_MS. */
-const MOUTH_PATTERN = [1, 0, 1, 1, 0, 1, 0, 0, 1, 0];
-const MOUTH_STEP_MS = 120;
-/** How long each hand gesture / rest phase lasts while talking. */
-const GESTURE_PHASE_MS = 900;
 
 interface NPCAnimationState {
   currentFrame: "idle" | "walk1" | "walk2" | "talk";
@@ -219,27 +214,10 @@ export class NPC {
     return this.currentFrame === "talk";
   }
 
-  /**
-   * Pick the talk frame: the mouth flaps quickly in an irregular pattern
-   * while a hand gesture comes and goes more slowly.
-   */
   private updateTalking(currentTime: number): void {
     if (this.talkStartTime === null) this.talkStartTime = currentTime;
-    const elapsed = currentTime - this.talkStartTime;
-    const mouthOpen =
-      MOUTH_PATTERN[
-        Math.floor(elapsed / MOUTH_STEP_MS) % MOUTH_PATTERN.length
-      ] === 1;
-    const gesturing = Math.floor(elapsed / GESTURE_PHASE_MS) % 2 === 1;
-
-    const frames = this.sprites[this.facingDirection];
-    const texture = gesturing
-      ? mouthOpen
-        ? frames.talk2
-        : frames.talk3
-      : mouthOpen
-        ? frames.talk1
-        : frames.idle;
+    const frame = talkFrameAt(currentTime - this.talkStartTime);
+    const texture = this.sprites[this.facingDirection][frame];
     if (this.sprite.texture !== texture) this.sprite.texture = texture;
   }
 

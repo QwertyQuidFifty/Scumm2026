@@ -319,6 +319,13 @@ export class Game {
       this.characterSprites!,
     );
 
+    // Play the player's talking animation while their own line is shown
+    this.characterController.setSpeakingCheck(
+      () =>
+        !!this.speechBubble?.isShowing() &&
+        this.speechBubble.getSpeaker() === "player",
+    );
+
     // Set up depth manager callback for character movement
     this.characterController.setMoveCallback((position: Position) => {
       this.depthManager!.updateSpritePosition("character", position.y);
@@ -1176,6 +1183,9 @@ export class Game {
       this.actionBar.revertColor();
     }
 
+    // Turn to face the NPC before interacting with them
+    this.characterController?.faceTowards(npc.getPosition());
+
     // Execute the NPC interaction
     this.handleNPCInteraction(npc, action);
 
@@ -1289,12 +1299,7 @@ export class Game {
 
     if (selectedResponse && this.speechBubble && this.characterSprite) {
       // Show player character saying their selected response (white text)
-      this.speechBubble.showSpeech(selectedResponse.text, 1500, 0xffffff); // White text, 1.5 seconds
-      this.speechBubble.positionAboveCharacter(
-        this.characterSprite.x,
-        this.characterSprite.y - 60, // Use same offset as NPCs for consistency
-        this.config.gameHeight,
-      );
+      this.showPlayerSpeech(selectedResponse.text, 1500, 0xffffff); // White text, 1.5 seconds
 
       // Wait for player speech to finish, then process the NPC response
       setTimeout(() => {
@@ -1608,6 +1613,21 @@ export class Game {
     this.revertToWalkAction();
   }
 
+  /** Show a line spoken by the player above their head (plays their talk animation). */
+  private showPlayerSpeech(
+    text: string,
+    duration?: number,
+    textColor?: number,
+  ): void {
+    if (!this.speechBubble || !this.characterSprite) return;
+    this.speechBubble.showSpeech(text, duration, textColor, "player");
+    this.speechBubble.positionAboveCharacter(
+      this.characterSprite.x,
+      this.characterSprite.y - 60,
+      this.config.gameHeight,
+    );
+  }
+
   private revertToWalkAction(): void {
     // Revert to walk action after executing another action
     if (this.commandPanel) {
@@ -1670,13 +1690,8 @@ export class Game {
           if (!doorOverlay || !doorOverlay.isVisible()) {
             // Door is closed, show appropriate message
             if (this.speechBubble && this.characterSprite) {
-              this.speechBubble.showSpeech(
+              this.showPlayerSpeech(
                 "The door is closed. I need to open it first.",
-              );
-              this.speechBubble.positionAboveCharacter(
-                this.characterSprite.x,
-                this.characterSprite.y - 60, // Use same offset as NPCs for consistency
-                this.config.gameHeight,
               );
             }
             this.pendingAction = undefined;
@@ -1709,12 +1724,7 @@ export class Game {
     if (response) {
       // Show response text in speech bubble above character (only if text is not empty)
       if (this.speechBubble && this.characterSprite && response.text.trim()) {
-        this.speechBubble.showSpeech(response.text);
-        this.speechBubble.positionAboveCharacter(
-          this.characterSprite.x,
-          this.characterSprite.y - 60, // Use same offset as NPCs for consistency
-          this.config.gameHeight,
-        );
+        this.showPlayerSpeech(response.text);
       }
 
       // Handle special cases that need additional logic
@@ -1739,12 +1749,7 @@ export class Game {
         // Fallback for other unknown object-action combinations
         const fallbackText = `I can't ${action} the ${object.name}.`;
         if (this.speechBubble && this.characterSprite) {
-          this.speechBubble.showSpeech(fallbackText);
-          this.speechBubble.positionAboveCharacter(
-            this.characterSprite.x,
-            this.characterSprite.y - 60, // Use same offset as NPCs for consistency
-            this.config.gameHeight,
-          );
+          this.showPlayerSpeech(fallbackText);
         }
         console.log(`Unknown action: ${action} on ${object.name}`);
       }
@@ -1812,12 +1817,7 @@ export class Game {
 
     // Show response in speech bubble
     if (this.speechBubble && this.characterSprite) {
-      this.speechBubble.showSpeech(responseText);
-      this.speechBubble.positionAboveCharacter(
-        this.characterSprite.x,
-        this.characterSprite.y,
-        this.config.gameHeight,
-      );
+      this.showPlayerSpeech(responseText);
     }
 
     console.log(`Item-Object combination: ${responseText}`);
@@ -1877,12 +1877,7 @@ export class Game {
 
     // Show response in speech bubble
     if (this.speechBubble && this.characterSprite) {
-      this.speechBubble.showSpeech(responseText);
-      this.speechBubble.positionAboveCharacter(
-        this.characterSprite.x,
-        this.characterSprite.y,
-        this.config.gameHeight,
-      );
+      this.showPlayerSpeech(responseText);
     }
 
     // Clear selected item and revert action
@@ -1913,12 +1908,7 @@ export class Game {
     if (response) {
       // Show response text in speech bubble above character
       if (this.speechBubble && this.characterSprite) {
-        this.speechBubble.showSpeech(response.text);
-        this.speechBubble.positionAboveCharacter(
-          this.characterSprite.x,
-          this.characterSprite.y - 60, // Use same offset as NPCs for consistency
-          this.config.gameHeight,
-        );
+        this.showPlayerSpeech(response.text);
       }
 
       console.log(`${action.toUpperCase()} ${item.name}: ${response.text}`);
@@ -1926,12 +1916,7 @@ export class Game {
       // Fallback for unknown item-action combinations
       const fallbackText = `I can't ${action} the ${item.name}.`;
       if (this.speechBubble && this.characterSprite) {
-        this.speechBubble.showSpeech(fallbackText);
-        this.speechBubble.positionAboveCharacter(
-          this.characterSprite.x,
-          this.characterSprite.y - 60, // Use same offset as NPCs for consistency
-          this.config.gameHeight,
-        );
+        this.showPlayerSpeech(fallbackText);
       }
       console.log(`Unknown action: ${action} on ${item.name}`);
     }
