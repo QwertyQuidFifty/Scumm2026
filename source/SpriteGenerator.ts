@@ -35,6 +35,14 @@ export interface CharacterSprites {
 
 const DIRECTIONS: Direction[] = ["up", "down", "left", "right"];
 
+/** The pixel rows each generated character texture was drawn from. */
+const texturePixels = new WeakMap<Texture, string[]>();
+
+/** Pixel rows behind a character texture (for pixel-accurate clicks). */
+export function pixelRowsFor(texture: Texture): string[] | undefined {
+  return texturePixels.get(texture);
+}
+
 /**
  * Turns the character designs in ./sprites/designs into PixiJS textures.
  */
@@ -78,6 +86,7 @@ export class SpriteGenerator {
 
     renderer.render(graphics, { renderTexture });
     graphics.destroy();
+    texturePixels.set(renderTexture, pixelData);
     return renderTexture;
   }
 
