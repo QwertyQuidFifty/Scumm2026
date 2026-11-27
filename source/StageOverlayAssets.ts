@@ -1,6 +1,7 @@
 import { Graphics, RenderTexture, Renderer } from "pixi.js";
 import { Position } from "./types";
 import { buildOpenDoorway, type PixelArtImage } from "./overlays/openDoorway";
+import { buildClosedShopDoor } from "./overlays/closedDoor";
 
 export type OverlayZIndexType = "foreground" | "inline" | "background";
 
@@ -35,6 +36,8 @@ export interface OverlayAssetDefinition {
   width: number;
   height: number;
   zIndexType: OverlayZIndexType; // New: foreground, inline, or background
+  // For door overlays: whether this shows the door open or closed
+  depicts?: "open" | "closed";
   // For inline overlays: the y used for depth sorting (defaults to position.y,
   // the image's bottom edge). Set it to where the prop touches the floor.
   depthY?: number;
@@ -163,10 +166,36 @@ export class StageOverlayAssets {
     };
   }
 
+  /** The shop's exit door drawn closed over the painted open doorway. */
+  private static closedShopDoorOverlay(): OverlayAssetDefinition {
+    const art = buildClosedShopDoor();
+    const width = art.rows[0].length * art.pixelSize;
+    const height = art.rows.length * art.pixelSize;
+    return {
+      id: "shop-exit-door-closed",
+      objectId: "exit-door",
+      stageName: "test-indoor",
+      assetKey: "shop_exit_door_closed",
+      // Overlays are anchored bottom-left
+      position: { x: art.x, y: art.y + height },
+      width,
+      height,
+      zIndexType: "background", // Behind characters
+      visible: true, // The door starts closed
+      triggerAction: "open",
+      depicts: "closed",
+      assetType: "pixelart",
+      pixelArt: art,
+    };
+  }
+
   static getAllOverlayAssets(): OverlayAssetDefinition[] {
     return [
       // Building entrance open door for cyberpunk-street stage
       this.openDoorwayOverlay(),
+
+      // Shop exit door, closed (the background paints it open)
+      this.closedShopDoorOverlay(),
 
       // Small stool in mechstore
       {

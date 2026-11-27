@@ -1728,14 +1728,10 @@ export class Game {
         object.id,
       );
       if (transition) {
-        // For building-entrance, only allow walk transition if door is open
-        if (object.id === "building-entrance") {
+        // Doors with an open/closed overlay only let you through when open
+        {
           const overlayManager = this.stageManager.getStageOverlayManager();
-          const doorOverlay = overlayManager.getOverlayByObjectAndAction(
-            object.id,
-            "open",
-          );
-          if (!doorOverlay || !doorOverlay.isVisible()) {
+          if (overlayManager.isObjectOpen(object.id) === false) {
             // Door is closed, show appropriate message
             if (this.speechBubble && this.characterSprite) {
               this.showPlayerSpeech(
@@ -1782,8 +1778,12 @@ export class Game {
       }
 
       // Handle stage overlay triggers
-      if (action === "open" && object.id === "building-entrance") {
-        // Trigger the building entrance door overlay
+      // Doors with an open/closed overlay toggle it when opened
+      if (
+        action === "open" &&
+        this.stageManager.getStageOverlayManager().isObjectOpen(object.id) !==
+          undefined
+      ) {
         this.stageManager.triggerOverlay(object.id, action);
       }
 

@@ -8,6 +8,7 @@ import { DepthManager } from "./DepthManager";
 import { StageOverlayManager } from "./StageOverlay";
 import { StageOverlayAssets, STOOL_FOOTPRINT } from "./StageOverlayAssets";
 import { DOOR_POLYGON } from "./overlays/openDoorway";
+import { SHOP_EXIT_POLYGON } from "./overlays/closedDoor";
 import { NeonSignLayer } from "./effects/NeonSignLayer";
 import { signsForStage } from "./effects/neonSigns";
 import { WalkBehindLayer } from "./effects/WalkBehindLayer";
@@ -236,12 +237,7 @@ export class StageManager {
           height: 150,
           description: "The exit door leading back to the street",
           defaultAction: "open",
-          polygon: [
-            { x: 856, y: 258 },
-            { x: 923, y: 258 },
-            { x: 923, y: 638 },
-            { x: 856, y: 599 },
-          ],
+          polygon: SHOP_EXIT_POLYGON, // shared with the closed-door art
         },
         {
           id: "stool-small",
