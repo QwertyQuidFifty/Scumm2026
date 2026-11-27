@@ -302,7 +302,7 @@ export class ActionResponseSystem {
         [
           "open",
           {
-            text: "I open the door and step back onto the street.",
+            text: "", // the door graphic toggles; walk through when it's open
             shouldMoveCharacter: false,
           },
         ],

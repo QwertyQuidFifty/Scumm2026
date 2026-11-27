@@ -1,6 +1,7 @@
 import { Sprite, Container, Texture, Renderer } from "pixi.js";
 import { Position } from "./types";
 import { OverlayZIndexType } from "./StageOverlayAssets";
+import { isDoorOpen } from "./overlays/doorState";
 
 export interface StageOverlayData {
   id: string;
@@ -12,6 +13,12 @@ export interface StageOverlayData {
   zIndexType: OverlayZIndexType; // Layering type: foreground, inline, or background
   visible: boolean; // Initial visibility
   triggerAction?: string; // Action that toggles this overlay (e.g., "open")
+  /**
+   * For door overlays: whether the overlay shows the door "open" (e.g. a
+   * lit doorway drawn over a painted closed door) or "closed" (a door drawn
+   * over a painted open doorway). Defaults to "open".
+   */
+  depicts?: "open" | "closed";
 }
 
 export class StageOverlay {
@@ -71,6 +78,11 @@ export class StageOverlay {
 
   getId(): string {
     return this.data.id;
+  }
+
+  /** Whether this overlay draws the open or the closed state of a door. */
+  getDepicts(): "open" | "closed" {
+    return this.data.depicts ?? "open";
   }
 
   getTriggerAction(): string | undefined {
@@ -199,6 +211,16 @@ export class StageOverlayManager {
 
   getContainer(): Container {
     return this.container;
+  }
+
+  /**
+   * Whether a door object is open, from its "open" overlay: undefined when
+   * the object has no such overlay (not a door with states).
+   */
+  isObjectOpen(objectId: string): boolean | undefined {
+    const overlay = this.getOverlayByObjectAndAction(objectId, "open");
+    if (!overlay) return undefined;
+    return isDoorOpen(overlay.getDepicts(), overlay.isVisible());
   }
 
   clearAll(): void {
