@@ -14,7 +14,13 @@ const DIRECTIONS = ["up", "down", "left", "right"] as const;
 const WALK_NAMES = ["idle", "walk1", "walk2", "walk3", "walk4"];
 const TALK_NAMES = ["talk1", "talk2", "talk3"];
 const IDLE_NAMES = ["blink", "sigh"];
-const FRAME_NAMES = [...WALK_NAMES, ...TALK_NAMES, ...IDLE_NAMES];
+const ACTION_NAMES = ["reach", "reachLow"];
+const FRAME_NAMES = [
+  ...WALK_NAMES,
+  ...TALK_NAMES,
+  ...IDLE_NAMES,
+  ...ACTION_NAMES,
+];
 
 /** One frame's pixel rows joined into a single string, for comparison. */
 function frameData(
