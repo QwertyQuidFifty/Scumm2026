@@ -3,6 +3,7 @@ import { Position } from "./types";
 import { CharacterSprites, Direction } from "./SpriteGenerator";
 import { InteractiveObject } from "./InteractiveObject";
 import { talkFrameAt } from "./TalkAnimation";
+import { IdleAnimator, PLAYER_IDLE } from "./IdleAnimation";
 import { NavMesh } from "./navigation/pathfinding";
 
 interface MovementState {
@@ -37,6 +38,9 @@ export class CharacterController {
   private isSpeaking?: () => boolean;
   /** When the current speech started (null when not talking). */
   private talkStartTime: number | null = null;
+  /** Blinks and fidgets while standing still (fidgets start after ~7s). */
+  private readonly idle = new IdleAnimator(PLAYER_IDLE, 1);
+  private idleActive = false;
   // Interaction points for each object (within walkable area) - adjusted for background offset
   private interactionPoints: Map<string, Position> = new Map([
     ["hotel-sign", { x: 202, y: 657 }], // Near hotel sign, on street (617 + 40)
@@ -281,6 +285,7 @@ export class CharacterController {
       const direction = this.animationState.currentDirection;
       const texture = this.sprites[direction][frame];
       if (this.sprite.texture !== texture) this.sprite.texture = texture;
+      this.idleActive = false;
       return;
     }
     if (this.talkStartTime !== null) {
@@ -293,6 +298,23 @@ export class CharacterController {
         this.animationState.frameStartTime = currentTime;
       }
     }
+
+    // Standing still: blinks, and fidgets once idle for a while.
+    if (!this.animationState.isWalking) {
+      if (!this.idleActive) {
+        this.idle.reset(currentTime);
+        this.idleActive = true;
+      }
+      const state = this.idle.frameAt(currentTime);
+      const direction = state.faceCamera
+        ? "down"
+        : this.animationState.currentDirection;
+      const texture = this.sprites[direction][state.frame];
+      if (this.sprite.texture !== texture) this.sprite.texture = texture;
+      this.animationState.currentFrame = "idle";
+      return;
+    }
+    this.idleActive = false;
 
     const elapsed = currentTime - this.animationState.frameStartTime;
 

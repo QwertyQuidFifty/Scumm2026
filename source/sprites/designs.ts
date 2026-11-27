@@ -17,6 +17,7 @@ const PLAYER_SLEEVE: ArmStyle = { base: "J", shade: "j", hand: ["SS", "ss"] };
 export const PLAYER_DESIGN: CharacterDesign = {
   palette: {
     K: 0x1a1020, // outline / eyes / belt
+    e: 0x1a1020, // eyes (blink frames close them)
     L: 0xffb067, // hair highlight
     H: 0xe8692e, // hair
     h: 0xa53d22, // hair shade
@@ -45,8 +46,8 @@ export const PLAYER_DESIGN: CharacterDesign = {
       "HHHHHHHHHhhh",
       "HHhSSHSSSShh",
       "HhSSSSSSSSSh",
-      ".SSKSSSSKSs.",
-      ".SSKSSSSKSs.",
+      ".SSeSSSSeSs.",
+      ".SSeSSSSeSs.",
       ".sSSSSsSSSs.",
       "..SSSrrSSs..",
       "...sSSSSs...",
@@ -75,8 +76,8 @@ export const PLAYER_DESIGN: CharacterDesign = {
       "HHHHhHHHHHhh",
       "HHHhHHHhSSHh",
       "HhHHHHSSSSSs",
-      "hHHsSSSSKSS.",
-      "hHHssSSSKSSS",
+      "hHHsSSSSeSS.",
+      "hHHssSSSeSSS",
       ".hHsSSSSSSs.",
       ".hhSSSSSrrS.",
       "..hsSSSSSs..",
@@ -159,6 +160,7 @@ export const PLAYER_DESIGN: CharacterDesign = {
 export const BARTENDER_DESIGN: CharacterDesign = {
   palette: {
     K: 0x14121a,
+    e: 0x14121a, // eyes (blink frames close them)
     L: 0x6a5446, // stubble highlight
     H: 0x3e2c24, // buzz cut / beard
     h: 0x261a15,
@@ -188,7 +190,7 @@ export const BARTENDER_DESIGN: CharacterDesign = {
       ".LHHHHHHHMm.",
       ".SSSSSSSSMm.",
       "SSKKSSSKKMmS",
-      "SSSKSSSSRMSs",
+      "SSSeSSSSRMSs",
       "SSSSSSSSSSSs",
       ".SSSSssSSSs.",
       ".HSHHHHHHSh.",
@@ -213,7 +215,7 @@ export const BARTENDER_DESIGN: CharacterDesign = {
       "...ssssss...",
       "...ssssss...",
     ],
-    // His left side: temple plate and glowing eye.
+    // His left side (seen when he faces left): temple plate and glowing eye.
     side: [
       "..LLHHHHh...",
       ".LHHHHHMmh..",
@@ -234,7 +236,7 @@ export const BARTENDER_DESIGN: CharacterDesign = {
       ".LHHHHHHHh..",
       "LHHHHHHHHSS.",
       "HHHHHHHHKKSS",
-      "HHHHsSSSSKSS",
+      "HHHHsSSSSeSS",
       "hHHsSSSSSSSS",
       "hHHsSSSSSSs.",
       ".hHsSSSHHHH.",
@@ -318,8 +320,11 @@ export const BARTENDER_DESIGN: CharacterDesign = {
 // ---------------------------------------------------------------------------
 
 export const VENDOR_DESIGN: CharacterDesign = {
+  // Her eyes are behind the visor, so it dims when she blinks.
+  blinkSwap: { V: "v" },
   palette: {
     K: 0x160f20,
+    e: 0x160f20, // eyes (blink frames close them)
     L: 0xff9ad8, // hair highlight
     H: 0xff4fb0, // hair
     h: 0xa8237a,
@@ -370,7 +375,7 @@ export const VENDOR_DESIGN: CharacterDesign = {
       "....sSSshhh.",
       "....ssss..hh",
     ],
-    // Her left side: shaved undercut, visor wrapping round.
+    // Her left side (seen when she faces left): shaved undercut, visor wrapping round.
     side: [
       "...LLHHHH...",
       "..LHHHHHHHH.",
@@ -475,6 +480,7 @@ export const MECHANIC_DESIGN: CharacterDesign = {
   talkSwap: { q: "V" },
   palette: {
     K: 0x16121a,
+    e: 0x16121a, // eyes (blink frames close them)
     L: 0xb0ffc0, // mohawk highlight
     H: 0x5aff7a, // mohawk
     h: 0x20a040,
@@ -510,7 +516,7 @@ export const MECHANIC_DESIGN: CharacterDesign = {
       ".MMMMMMMMMm.",
       ".MVVmMMmVVm.",
       ".SSSSSSSSSs.",
-      ".SSKSSSSKSs.",
+      ".SSeSSSSeSs.",
       ".QQQQQQQQQq.",
       ".QqQqQQqQqq.",
       "..QQQQQQQq..",
@@ -539,7 +545,7 @@ export const MECHANIC_DESIGN: CharacterDesign = {
       "SSSSSSSSSSS.",
       "MMMMMMMMVVm.",
       "SSssSSSSSSSS",
-      "SSssSSSSKSSS",
+      "SSssSSSSeSSS",
       "SSSSSSSSSSSS",
       ".SSSSQQQQQQq",
       ".sSSSQqQqQq.",
@@ -612,10 +618,160 @@ export const MECHANIC_DESIGN: CharacterDesign = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Shopkeeper android: white plastic shell over a chrome frame, a glowing
+// cyan visor for eyes, an LED mouth grille that lights up when it talks,
+// an antenna, an amber status light on the chest and segmented joints.
+// ---------------------------------------------------------------------------
+
+const ANDROID_LIMB: ArmStyle = { base: "M", shade: "m", hand: ["MM", "mm"] };
+
+export const ANDROID_DESIGN: CharacterDesign = {
+  // Its "eyes" are the visor (dims to blink); the grille glows when talking.
+  blinkSwap: { V: "v" },
+  talkSwap: { r: "R" },
+  palette: {
+    K: 0x10121a, // outline
+    e: 0x10121a, // eyes (unused: the visor blinks instead)
+    W: 0xc6cdd8, // shell (pale grey so it sits in the dim shop)
+    w: 0xe4e9f0, // shell highlight
+    g: 0x737d92, // shell shade
+    M: 0xa4aec0, // chrome joints / limbs
+    m: 0x5a6476, // chrome shade
+    V: 0x40f0ff, // visor glow
+    v: 0x1a7f99, // visor dimmed
+    r: 0x1f5566, // mouth grille (idle)
+    R: 0x8ffcff, // mouth grille lit (talking)
+    N: 0xff3b6b, // antenna tip
+    T: 0x2a3040, // chest panel
+    t: 0x1a1f2c, // chest panel shade
+    Y: 0xffb020, // amber status light
+    P: 0xa4aec0, // legs
+    p: 0x5a6476,
+    B: 0x4a5262, // feet
+    b: 0x2c3240,
+  },
+  head: {
+    y: 4,
+    sideX: 10,
+    front: [
+      ".....NN.....",
+      ".....mm.....",
+      "..wWWWWWWg..",
+      ".wWWWWWWWWg.",
+      "wWWWWWWWWWgg",
+      "wVVVVVVVVVVg",
+      "wvVVVVVVVVvg",
+      "wWWWWWWWWWgg",
+      ".wWWrrrrWWg.",
+      ".wWWrrrrWWg.",
+      "..gwWWWWwgg.",
+      "....mMMm....",
+      "....mMMm....",
+    ],
+    back: [
+      ".....NN.....",
+      ".....mm.....",
+      "..wWWWWWWg..",
+      ".wWWWWWWWWg.",
+      "wWWWWWWWWWgg",
+      "wWWgggggWWgg",
+      "wWWWWWWWWWgg",
+      "wWWWWWWWWWgg",
+      ".wWWWWWWWWg.",
+      ".wWmmmmmWWg.",
+      "..gwWWWWwgg.",
+      "....mMMm....",
+      "....mMMm....",
+    ],
+    side: [
+      "....NN......",
+      "....mm......",
+      "..wWWWWWg...",
+      ".wWWWWWWWW..",
+      "wWWWWWWWWWg.",
+      "wWWWmWWVVVVV",
+      "wWWmMmWvVVVV",
+      "wWWWmWWWWWWg",
+      ".wWWWWWWrrW.",
+      ".wWWWWWWrrg.",
+      "..gwWWWWWg..",
+      "....mMMm....",
+      "....mMMm....",
+    ],
+  },
+  torso: {
+    y: 17,
+    sideX: 11,
+    front: [
+      "...wWWWWWWg...",
+      ".wWWWWWWWWWWg.",
+      "wWWWWWWWWWWWgg",
+      "wWWTTTTTTTTWgg",
+      "wWWTttttttTWgg",
+      "wWWTtYYYYtTWgg",
+      "wWWTttttttTWgg",
+      "wWWTTTTTTTTWgg",
+      "wWWWWWWWWWWWgg",
+      "mmmmmmmmmmmmmm",
+      ".wWWWWWWWWWWg.",
+      ".wWWWWWWWWWgg.",
+    ],
+    back: [
+      "...wWWWWWWg...",
+      ".wWWWWWWWWWWg.",
+      "wWWWWWWWWWWWgg",
+      "wWWWgmmmmgWWgg",
+      "wWWWWmmmmWWWgg",
+      "wWWWgmmmmgWWgg",
+      "wWWWWWWWWWWWgg",
+      "wWWWWWWWWWWWgg",
+      "wWWWWWWWWWWWgg",
+      "mmmmmmmmmmmmmm",
+      ".wWWWWWWWWWWg.",
+      ".wWWWWWWWWWgg.",
+    ],
+    side: [
+      "...wWWWg..",
+      "..wWWWWWg.",
+      ".wWWWWWWWg",
+      "wWWWWWWTTg",
+      "wWWWWWWtYg",
+      "wWWWWWWttg",
+      "wWWWWWWTTg",
+      "wWWWWWWWWg",
+      "wWWWWWWWgg",
+      "mmmmmmmmmm",
+      ".wWWWWWWg.",
+      ".wWWWWWgg.",
+    ],
+  },
+  arms: {
+    width: 3,
+    shoulderY: 19,
+    wristY: 26,
+    frontX: 10,
+    sideX: 15,
+    right: ANDROID_LIMB,
+    left: ANDROID_LIMB,
+  },
+  legs: {
+    width: 3,
+    hipY: 27,
+    frontX: 13,
+    sideX: 15,
+    base: "P",
+    shade: "p",
+    bootFront: [".BBb.", "BBBbb", "bbbbb"],
+    bootSide: ["BBb..", "BBBBb", "bbbbb"],
+  },
+};
+
 /** Designs by NPC sprite type. "basic" NPCs share the player's look. */
 export const CHARACTER_DESIGNS: Record<string, CharacterDesign> = {
   basic: PLAYER_DESIGN,
   bartender: BARTENDER_DESIGN,
   customer: VENDOR_DESIGN,
   mechanic: MECHANIC_DESIGN,
+  android: ANDROID_DESIGN,
 };

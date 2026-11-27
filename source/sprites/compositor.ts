@@ -44,15 +44,18 @@ function dropToFloor(rows: string[]): string[] {
   ];
 }
 
-/** A part seen from the front, back and side (side faces right). */
+/** A part seen from the front, back and side (side views are drawn facing right). */
 export interface PartViews {
   front: string[];
   back: string[];
+  /**
+   * Side view, drawn facing right. For asymmetric designs this is the
+   * character's left side, shown (mirrored) when they face screen-left.
+   */
   side: string[];
   /**
-   * Optional side view of the character's right side, for asymmetric
-   * designs. Drawn facing right like `side`; it is mirrored for the
-   * left-facing frames.
+   * Optional view of the character's right side, shown when they face
+   * screen-right. Defaults to `side` for symmetric designs.
    */
   sideRight?: string[];
   /** Top row of the part on the canvas. */
@@ -75,6 +78,13 @@ export interface CharacterDesign {
    * design can instead recolour keys, e.g. a respirator that glows.
    */
   talkSwap?: Record<string, string>;
+  /**
+   * How the head changes in the blink frame. By default eyes (the 'e' key)
+   * close: the upper pixel of a two-pixel eye becomes skin and a one-pixel
+   * eye becomes a skin-shade line. A design can instead recolour keys,
+   * e.g. a visor that dims.
+   */
+  blinkSwap?: Record<string, string>;
   head: PartViews;
   torso: PartViews;
   arms: {
@@ -286,7 +296,9 @@ export type FrameName =
   | "walk4"
   | "talk1"
   | "talk2"
-  | "talk3";
+  | "talk3"
+  | "blink"
+  | "sigh";
 export const FRAME_NAMES: FrameName[] = [
   "idle",
   "walk1",
@@ -296,6 +308,8 @@ export const FRAME_NAMES: FrameName[] = [
   "talk1",
   "talk2",
   "talk3",
+  "blink",
+  "sigh",
 ];
 
 /**
@@ -314,6 +328,7 @@ interface Pose {
   passing: boolean;
   mouthOpen?: boolean;
   gesture?: boolean;
+  eyesClosed?: boolean;
 }
 
 // prettier-ignore
@@ -326,7 +341,36 @@ const POSES: Record<FrameName, Pose> = {
   talk1: { bob: 0,  leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0,  passing: false, mouthOpen: true },
   talk2: { bob: 0,  leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0,  passing: false, mouthOpen: true, gesture: true },
   talk3: { bob: 0,  leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0,  passing: false, gesture: true },
+  blink: { bob: 0,  leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0,  passing: false, eyesClosed: true },
+  // Idle weight shift: head, torso and arms settle down by a pixel.
+  sigh:  { bob: 1,  leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0,  passing: false },
 };
+
+/** The head grid with the eyes closed (see CharacterDesign.blinkSwap). */
+function closeEyes(d: CharacterDesign, rows: string[]): string[] {
+  if (d.blinkSwap) {
+    const swap = d.blinkSwap;
+    return rows.map((r) => [...r].map((c) => swap[c] ?? c).join(""));
+  }
+  return rows.map((row, y) =>
+    [...row]
+      .map((c, x) => {
+        if (c !== "e") return c;
+        if (rows[y + 1]?.[x] === "e") return "S"; // upper lid comes down
+        if (rows[y - 1]?.[x] === "e") return "e"; // closed eye line
+        return "s"; // one-pixel eye: lid line
+      })
+      .join(""),
+  );
+}
+
+/** Head rows for a pose: mouth and eyes as the pose asks. */
+function headFor(d: CharacterDesign, pose: Pose, rows: string[]): string[] {
+  let out = rows;
+  if (pose.mouthOpen) out = openMouth(d, out);
+  if (pose.eyesClosed) out = closeEyes(d, out);
+  return out;
+}
 
 /** The head grid with the mouth open (see CharacterDesign.talkSwap). */
 function openMouth(d: CharacterDesign, rows: string[]): string[] {
@@ -359,7 +403,7 @@ function frontOrBack(d: CharacterDesign, pose: Pose, back: boolean): string[] {
   );
 
   let headRows = back ? d.head.back : d.head.front;
-  if (pose.mouthOpen && !back) headRows = openMouth(d, headRows);
+  if (!back) headRows = headFor(d, pose, headRows);
   const torsoRows = back ? d.torso.back : d.torso.front;
   canvas.stamp(grid(headRows, centred(headRows), d.head.y + b));
   canvas.stamp(grid(torsoRows, centred(torsoRows), d.torso.y + b));
@@ -478,7 +522,7 @@ function side(
   canvas.stamp(legSide(d, nearLeg, false));
   const view = (part: PartViews): string[] =>
     rightSide && part.sideRight ? part.sideRight : part.side;
-  const headRows = pose.mouthOpen ? openMouth(d, view(d.head)) : view(d.head);
+  const headRows = headFor(d, pose, view(d.head));
   canvas.stamp(grid(headRows, d.head.sideX, d.head.y + b));
   canvas.stamp(grid(view(d.torso), d.torso.sideX, d.torso.y + b));
   // Gesture: the near forearm comes up and forward, palm out.
@@ -507,14 +551,17 @@ export function buildCharacterFrames(
     const pose = POSES[name];
     frames.down.push({ name, data: dropToFloor(frontOrBack(d, pose, false)) });
     frames.up.push({ name, data: dropToFloor(frontOrBack(d, pose, true)) });
-    // Facing right the viewer sees the character's left side.
+    // A character facing screen-right shows the viewer their right side
+    // (right arm nearest); facing screen-left shows their left side.
     frames.right.push({
       name,
-      data: dropToFloor(side(d, pose, d.arms.left, d.arms.right, false)),
+      data: dropToFloor(side(d, pose, d.arms.right, d.arms.left, true)),
     });
     frames.left.push({
       name,
-      data: dropToFloor(mirror(side(d, pose, d.arms.right, d.arms.left, true))),
+      data: dropToFloor(
+        mirror(side(d, pose, d.arms.left, d.arms.right, false)),
+      ),
     });
   }
   return frames;
