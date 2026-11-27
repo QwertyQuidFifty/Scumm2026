@@ -10,6 +10,8 @@ import { StageOverlayAssets, STOOL_FOOTPRINT } from "./StageOverlayAssets";
 import { DOOR_POLYGON } from "./overlays/openDoorway";
 import { NeonSignLayer } from "./effects/NeonSignLayer";
 import { signsForStage } from "./effects/neonSigns";
+import { WalkBehindLayer } from "./effects/WalkBehindLayer";
+import { walkBehindsForStage } from "./effects/walkBehinds";
 
 export class StageManager {
   private stages: Map<string, Stage> = new Map();
@@ -17,6 +19,7 @@ export class StageManager {
   private currentStage?: Stage;
   private backgroundSprite?: Sprite;
   private neonLayer?: NeonSignLayer;
+  private walkBehinds?: WalkBehindLayer;
   private keySprite?: KeySprite;
   private stageContainer: Container;
   private assetManager: AssetManager;
@@ -254,6 +257,29 @@ export class StageManager {
             { x: 652, y: 678 }, // 500+32, 650+32
             { x: 554, y: 678 }, // 500-32, 650+32
           ],
+        },
+      ],
+      npcs: [
+        {
+          id: "shopkeeper",
+          name: "Unit K-7",
+          // Behind the counter: legs hidden by the counter walk-behind
+          // (its base is at y=607), head and chest above the counter top.
+          position: { x: 435, y: 525 },
+          description:
+            "A shopkeeper android. Its visor flickers as it watches you.",
+          dialogues: [
+            "Welcome to the Mech Store. Parts, repairs, no questions asked.",
+            "My sensors indicate you require an upgrade.",
+            "Payment in credits only. Barter protocols disabled.",
+            "Please do not touch the merchandise. It bites.",
+          ],
+          defaultAction: "talk",
+          spriteType: "android",
+          facingDirection: "down",
+          // In front of the counter and off to the side, so the player
+          // faces the android without standing in front of it
+          interactionPoint: { x: 590, y: 632 },
         },
       ],
       characterStartPosition: { x: 863, y: 628 },
@@ -593,6 +619,26 @@ export class StageManager {
           "object",
         );
       }
+
+      // Walk-behinds: parts of the background drawn over characters behind them
+      const walkBehinds = walkBehindsForStage(stage.id);
+      if (walkBehinds.length > 0 && this.renderer) {
+        this.walkBehinds = new WalkBehindLayer(
+          this.renderer,
+          backgroundTexture,
+          walkBehinds,
+          { width: stage.backgroundWidth, height: stage.backgroundHeight },
+          { x: this.backgroundSprite.x, y: this.backgroundSprite.y },
+        );
+        for (const { def, sprite } of this.walkBehinds.sprites) {
+          this.depthManager.registerSprite(
+            `walk-behind-${def.id}`,
+            sprite,
+            def.depthY,
+            "object",
+          );
+        }
+      }
       console.log(
         "Registered background sprite with depth manager at Y position -1000",
       );
@@ -766,6 +812,15 @@ export class StageManager {
     // Unregister background from depth manager
     if (this.depthManager && this.backgroundSprite) {
       this.depthManager.unregisterSprite("background");
+    }
+
+    // Remove walk-behinds
+    if (this.walkBehinds) {
+      for (const { def } of this.walkBehinds.sprites) {
+        this.depthManager?.unregisterSprite(`walk-behind-${def.id}`);
+      }
+      this.walkBehinds.destroy();
+      this.walkBehinds = undefined;
     }
 
     // Remove neon sign overlays

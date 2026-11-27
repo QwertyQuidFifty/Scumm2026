@@ -13,7 +13,8 @@ import { CHARACTER_DESIGNS, PLAYER_DESIGN } from "../src/sprites/designs.ts";
 const DIRECTIONS = ["up", "down", "left", "right"] as const;
 const WALK_NAMES = ["idle", "walk1", "walk2", "walk3", "walk4"];
 const TALK_NAMES = ["talk1", "talk2", "talk3"];
-const FRAME_NAMES = [...WALK_NAMES, ...TALK_NAMES];
+const IDLE_NAMES = ["blink", "sigh"];
+const FRAME_NAMES = [...WALK_NAMES, ...TALK_NAMES, ...IDLE_NAMES];
 
 /** One frame's pixel rows joined into a single string, for comparison. */
 function frameData(
@@ -35,7 +36,7 @@ for (const [name, design] of designs) {
   describe(`${name} design`, () => {
     const frames = buildCharacterFrames(design);
 
-    test("has idle, 4 walk and 3 talk frames in every direction", () => {
+    test("has idle, 4 walk, 3 talk, blink and sigh frames in every direction", () => {
       for (const dir of DIRECTIONS) {
         assert.deepEqual(
           frames[dir].map((f) => f.name),
@@ -99,6 +100,49 @@ for (const [name, design] of designs) {
       }
     });
 
+    test("blinking changes the face wherever an eye or visor is visible", () => {
+      for (const dir of ["down", "left", "right"] as const) {
+        const idle = frameData(frames, dir, "idle");
+        const blink = frameData(frames, dir, "blink");
+        const blinkKeys = Object.keys(design.blinkSwap ?? { e: "" });
+        if (blinkKeys.some((k) => idle.includes(k))) {
+          assert.notEqual(blink, idle, dir);
+        } else {
+          // e.g. Jake facing right shows only his cyber eye, which stays lit
+          assert.equal(blink, idle, dir);
+        }
+      }
+      // The front view always shows the eyes.
+      assert.notEqual(
+        frameData(frames, "down", "blink"),
+        frameData(frames, "down", "idle"),
+      );
+      // From behind there is no face, so the blink frame matches idle.
+      assert.equal(
+        frameData(frames, "up", "blink"),
+        frameData(frames, "up", "idle"),
+      );
+    });
+
+    test("blinking only touches the head", () => {
+      for (const dir of DIRECTIONS) {
+        const body = (n: string) =>
+          frameData(frames, dir, n)
+            .split("\n")
+            .slice(design.torso.y + 2)
+            .join("\n");
+        assert.equal(body("blink"), body("idle"), dir);
+      }
+    });
+
+    test("the sigh settles the upper body but keeps the feet planted", () => {
+      for (const dir of DIRECTIONS) {
+        const rows = (n: string) => frameData(frames, dir, n).split("\n");
+        assert.notEqual(rows("sigh").join(), rows("idle").join(), dir);
+        assert.deepEqual(rows("sigh").slice(-4), rows("idle").slice(-4), dir);
+      }
+    });
+
     test("talk frames keep the legs exactly as in idle", () => {
       for (const dir of DIRECTIONS) {
         const legs = (n: string) =>
@@ -159,7 +203,8 @@ test("asymmetric cyber arm stays on the bartender's left in every view", () => {
   assert.ok(!hasChrome(armRows(f.down[0].data), 0, 16));
   assert.ok(hasChrome(armRows(f.up[0].data), 0, 16));
   assert.ok(!hasChrome(armRows(f.up[0].data), 16, 32));
-  // Facing right shows his left (chrome) side; facing left shows skin only.
-  assert.ok(hasChrome(armRows(f.right[0].data), 0, 32));
-  assert.ok(!hasChrome(armRows(f.left[0].data), 0, 32));
+  // Facing screen-left shows his left (chrome) side; facing right, his
+  // right side with the skin arm nearest.
+  assert.ok(hasChrome(armRows(f.left[0].data), 0, 32));
+  assert.ok(!hasChrome(armRows(f.right[0].data), 0, 32));
 });

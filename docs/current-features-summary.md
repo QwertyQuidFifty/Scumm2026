@@ -43,11 +43,17 @@ This document captures all implemented features in the current SCUMM-style cyber
 - **Obstacles**: `Stage.obstacles` lists floor footprints of props (e.g. the shop stool's legs, `STOOL_FOOTPRINT`). Props drawn as inline overlays use `depthY` (where they meet the floor) for depth sorting, so characters are behind them from above and in front from below.
 - **Debug view**: press **W** to draw the walkable area (green), obstacles (red) and the current route (yellow).
 - **Animation**: Walking animation plays during movement, stops when arrived
+- **Idle animations** (`src/IdleAnimation.ts`): characters standing still blink every 2.5-6s (sometimes twice) and perform fidgets - look at the camera, check their wrist, or sigh. NPCs fidget every 5-12s with their own seeded rhythm; the player starts only after ~7s idle, resetting whenever they walk or talk. Eyes use the `e` key in head grids so the `blink` frame can close them; designs can override with `blinkSwap` (Maya's visor dims).
 
 ### Walkable Areas (Defined as Polygons)
 1. **Main Street**: `[(0,140), (320,140), (320,200), (0,200)]`
 2. **Left Sidewalk**: `[(0,120), (100,120), (100,140), (0,140)]`
 3. **Right Sidewalk**: `[(200,120), (320,120), (320,140), (200,140)]`
+
+### Walk-behinds
+- Parts of a background picture that characters can stand behind (`src/effects/walkBehinds.ts`, rendered by `WalkBehindLayer.ts`). Each is an outline polygon in background coordinates plus a depth line (its base on the floor, in game coordinates). Its pixels are cut out of the background at runtime and depth-sorted like a sprite, so characters with feet above the line are drawn behind it.
+- The shop counter (with the cash register) is one; the android shopkeeper (`android` design, NPC `shopkeeper`) stands behind it.
+- Speech text is placed just above a character's head at any scale (`speechAnchorY` in `SpeechBubble.ts`).
 
 ### Animated Neon Signs
 - Signs painted into the backgrounds get animated overlays (`src/effects/neonSigns.ts` defines them, `src/effects/NeonSignLayer.ts` renders them).

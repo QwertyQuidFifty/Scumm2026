@@ -10,7 +10,7 @@ import { CommandPanel, ActionType } from "./CommandPanel";
 import { InteractiveObject } from "./InteractiveObject";
 import { InventorySystem, InventoryItem } from "./InventorySystem";
 import { ActionResponseSystem } from "./ActionResponseSystem";
-import { SpeechBubble } from "./SpeechBubble";
+import { SpeechBubble, speechAnchorY } from "./SpeechBubble";
 import { StageManager } from "./StageManager";
 import { StageTransition } from "./Stage";
 import { PerspectiveScaler } from "./PerspectiveScaler";
@@ -1671,7 +1671,7 @@ export class Game {
     this.speechBubble.showSpeech(text, duration, textColor, "player");
     this.speechBubble.positionAboveCharacter(
       this.characterSprite.x,
-      this.characterSprite.y - 60,
+      speechAnchorY(this.characterSprite), // just above the head at any scale
       this.config.gameHeight,
     );
   }

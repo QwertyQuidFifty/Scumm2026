@@ -22,6 +22,8 @@ export interface DirectionalFrames {
   talk1: Texture; // mouth open
   talk2: Texture; // mouth open + hand gesture
   talk3: Texture; // mouth closed + hand gesture
+  blink: Texture; // eyes closed (idle)
+  sigh: Texture; // upper body settled by a pixel (idle)
 }
 
 export interface CharacterSprites {

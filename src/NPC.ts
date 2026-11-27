@@ -2,6 +2,8 @@ import { Sprite } from "pixi.js";
 import { Position } from "./types";
 import { CharacterSprites, Direction } from "./SpriteGenerator";
 import { talkFrameAt } from "./TalkAnimation";
+import { speechAnchorY } from "./SpeechBubble";
+import { IdleAnimator, NPC_IDLE, seedFrom } from "./IdleAnimation";
 
 export interface NPCData {
   id: string;
@@ -10,7 +12,7 @@ export interface NPCData {
   description: string;
   dialogues?: string[]; // Potential dialogue lines for future use
   defaultAction?: string; // Default action when right-clicking (usually "talk")
-  spriteType?: string; // Type of sprite to use (basic, bartender, customer, mechanic)
+  spriteType?: string; // Type of sprite to use (basic, bartender, customer, mechanic, android)
   interactionPoint?: Position; // Where the character should stand to interact with this NPC
   facingDirection?: Direction; // Which direction the NPC should face (default: down)
 }
@@ -37,6 +39,9 @@ export class NPC {
   private currentFrame: "idle" | "talk" = "idle";
   /** When the current talk started (set on the first update after startTalking). */
   private talkStartTime: number | null = null;
+  /** Blinks and random fidgets while standing still. */
+  private idle: IdleAnimator;
+  private idleActive = false;
   private movementState: NPCMovementState;
   private animationState: NPCAnimationState;
   private moveSpeed: number = 120; // Slightly slower than player for NPCs
@@ -49,6 +54,7 @@ export class NPC {
     this.data = data;
     this.sprites = sprites;
     this.facingDirection = data.facingDirection || "down"; // Use specified direction or default to down
+    this.idle = new IdleAnimator(NPC_IDLE, seedFrom(data.id));
 
     // Create sprite with idle animation in the specified direction
     this.sprite = new Sprite(sprites[this.facingDirection].idle);
@@ -184,7 +190,7 @@ export class NPC {
   getSpeechBubblePosition(): Position {
     return {
       x: this.sprite.x,
-      y: this.sprite.y - 60, // Position speech bubble above NPC
+      y: speechAnchorY(this.sprite), // just above the NPC's head at any scale
     };
   }
 
@@ -363,20 +369,24 @@ export class NPC {
   private updateAnimation(currentTime: number): void {
     if (!this.animationState.isWalking && this.currentFrame === "talk") {
       this.updateTalking(currentTime);
+      this.idleActive = false;
       return;
     }
 
     if (!this.animationState.isWalking) {
-      // Make sure we're showing idle when not walking
-      if (
-        this.animationState.currentFrame !== "idle" &&
-        this.animationState.currentFrame !== "talk"
-      ) {
-        this.animationState.currentFrame = "idle";
-        this.sprite.texture = this.sprites[this.facingDirection].idle;
+      // Standing still: blinks and random fidgets.
+      if (!this.idleActive) {
+        this.idle.reset(currentTime);
+        this.idleActive = true;
       }
+      const state = this.idle.frameAt(currentTime);
+      const direction = state.faceCamera ? "down" : this.facingDirection;
+      const texture = this.sprites[direction][state.frame];
+      if (this.sprite.texture !== texture) this.sprite.texture = texture;
+      this.animationState.currentFrame = "idle";
       return;
     }
+    this.idleActive = false;
 
     // Handle walking animation frames
     const elapsed = currentTime - this.animationState.frameStartTime;

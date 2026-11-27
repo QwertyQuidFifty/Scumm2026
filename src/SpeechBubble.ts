@@ -1,5 +1,21 @@
 import { Container, Text, TextStyle } from "pixi.js";
 
+/**
+ * Character art leaves a few blank rows above the head; the top of the
+ * head sits this fraction of the sprite's height above its feet.
+ */
+const HEAD_TOP_FRACTION = 0.9;
+/** Gap between the bottom of the text and the top of the head. */
+const HEAD_GAP = 8;
+
+/**
+ * The y to pass to positionAboveCharacter so the text sits just above a
+ * character's head at any scale (it places text 100px above the given y).
+ */
+export function speechAnchorY(sprite: { y: number; height: number }): number {
+  return sprite.y - sprite.height * HEAD_TOP_FRACTION - HEAD_GAP + 100;
+}
+
 /** Whose line is being shown: the player's, or anyone else's. */
 export type SpeechSpeaker = "player" | "other";
 
