@@ -4,6 +4,7 @@ import { CharacterSprites, Direction } from "./SpriteGenerator";
 import { InteractiveObject } from "./InteractiveObject";
 import { talkFrameAt } from "./TalkAnimation";
 import { IdleAnimator, PLAYER_IDLE } from "./IdleAnimation";
+import { CONTACT_MS, reachFrameAt, type ReachKind } from "./ActionAnimation";
 import { NavMesh } from "./navigation/pathfinding";
 
 interface MovementState {
@@ -41,6 +42,15 @@ export class CharacterController {
   /** Blinks and fidgets while standing still (fidgets start after ~7s). */
   private readonly idle = new IdleAnimator(PLAYER_IDLE, 1);
   private idleActive = false;
+  /**
+   * A reach (use / get / open) in progress. start is set on its first
+   * frame; onContact runs on the frame the hand is fully out.
+   */
+  private reach: {
+    kind: ReachKind;
+    start: number | null;
+    onContact?: () => void;
+  } | null = null;
   // Interaction points for each object (within walkable area) - adjusted for background offset
   private interactionPoints: Map<string, Position> = new Map([
     ["hotel-sign", { x: 202, y: 657 }], // Near hotel sign, on street (617 + 40)
@@ -146,6 +156,9 @@ export class CharacterController {
     console.log(
       `Moving character from (${start.x}, ${start.y}) to (${targetX}, ${targetY}) via ${route.length} leg(s)`,
     );
+    // Walking cuts a reach short; its effect still happens.
+    this.fireReachContact();
+    this.reach = null;
     this.route = route;
     this.startNextLeg(performance.now());
     return true;
@@ -278,6 +291,22 @@ export class CharacterController {
   }
 
   private updateAnimation(currentTime: number): void {
+    // Reaching for something (use / get / open) takes priority while it plays.
+    if (this.reach && !this.animationState.isWalking) {
+      if (this.reach.start === null) this.reach.start = currentTime;
+      const elapsed = currentTime - this.reach.start;
+      if (elapsed >= CONTACT_MS) this.fireReachContact();
+      const frame = reachFrameAt(this.reach.kind, elapsed);
+      if (frame) {
+        const texture =
+          this.sprites[this.animationState.currentDirection][frame];
+        if (this.sprite.texture !== texture) this.sprite.texture = texture;
+        this.idleActive = false;
+        return;
+      }
+      this.reach = null;
+    }
+
     // Talking (only while standing still): mouth and gesture animation.
     if (!this.animationState.isWalking && this.isSpeaking?.()) {
       if (this.talkStartTime === null) this.talkStartTime = currentTime;
@@ -396,6 +425,23 @@ export class CharacterController {
   /** Supply a check for whether the player's own speech is on screen. */
   setSpeakingCheck(check: () => boolean): void {
     this.isSpeaking = check;
+  }
+
+  /**
+   * Play the reach animation for using, getting or opening something.
+   * `onContact` runs on the frame the hand is fully out (or at once if the
+   * reach is cut short by walking away), so effects stay in sync with the
+   * animation even if frames are dropped.
+   */
+  playReach(kind: ReachKind, onContact?: () => void): void {
+    this.fireReachContact(); // finish any reach already in progress
+    this.reach = { kind, start: null, onContact };
+  }
+
+  private fireReachContact(): void {
+    const effect = this.reach?.onContact;
+    if (this.reach) this.reach.onContact = undefined;
+    effect?.();
   }
 
   /** Turn (without moving) to face a point, e.g. the NPC being talked to. */

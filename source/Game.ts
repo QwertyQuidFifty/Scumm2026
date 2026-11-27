@@ -11,6 +11,7 @@ import { InteractiveObject } from "./InteractiveObject";
 import { InventorySystem, InventoryItem } from "./InventorySystem";
 import { ActionResponseSystem } from "./ActionResponseSystem";
 import { SpeechBubble, speechAnchorY } from "./SpeechBubble";
+import { reachFor } from "./ActionAnimation";
 import { StageManager } from "./StageManager";
 import { StageTransition } from "./Stage";
 import { PerspectiveScaler } from "./PerspectiveScaler";
@@ -1762,6 +1763,22 @@ export class Game {
       }
     }
 
+    // Use / Get / Open: turn to the object and reach for it. The action's
+    // effects (door opening, item picked up) run on the animation frame
+    // where the hand is fully out.
+    const reach = reachFor(action);
+    const contactEffects: (() => void)[] = [];
+    const atContact = (effect: () => void) => {
+      if (reach && this.characterController) contactEffects.push(effect);
+      else effect();
+    };
+    if (reach && this.characterController) {
+      this.characterController.faceTowards(object.getCenter());
+      this.characterController.playReach(reach, () =>
+        contactEffects.forEach((effect) => effect()),
+      );
+    }
+
     // Get the appropriate response for this object-action combination
     const response = this.actionResponseSystem.getResponse(object.id, action);
 
@@ -1774,7 +1791,7 @@ export class Game {
       // Handle special cases that need additional logic
       if (action === "get" && object.id === "golden-key") {
         // Special handling for pickupable items
-        this.handleGetAction(object);
+        atContact(() => this.handleGetAction(object));
       }
 
       // Handle stage overlay triggers
@@ -1784,7 +1801,7 @@ export class Game {
         this.stageManager.getStageOverlayManager().isObjectOpen(object.id) !==
           undefined
       ) {
-        this.stageManager.triggerOverlay(object.id, action);
+        atContact(() => this.stageManager.triggerOverlay(object.id, action));
       }
 
       console.log(`${action.toUpperCase()}: ${response.text}`);
@@ -1826,6 +1843,12 @@ export class Game {
     // Revert action bar color when we arrive at the object
     if (this.actionBar) {
       this.actionBar.revertColor();
+    }
+
+    // Turn to the object and reach out with the item
+    if (this.characterController) {
+      this.characterController.faceTowards(object.getCenter());
+      this.characterController.playReach("reach");
     }
 
     // Handle item-object combinations with speech responses

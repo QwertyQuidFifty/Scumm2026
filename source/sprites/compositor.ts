@@ -298,7 +298,9 @@ export type FrameName =
   | "talk2"
   | "talk3"
   | "blink"
-  | "sigh";
+  | "sigh"
+  | "reach"
+  | "reachLow";
 export const FRAME_NAMES: FrameName[] = [
   "idle",
   "walk1",
@@ -310,6 +312,8 @@ export const FRAME_NAMES: FrameName[] = [
   "talk3",
   "blink",
   "sigh",
+  "reach",
+  "reachLow",
 ];
 
 /**
@@ -329,6 +333,8 @@ interface Pose {
   mouthOpen?: boolean;
   gesture?: boolean;
   eyesClosed?: boolean;
+  /** Reaching out to use/open something, or down to pick something up. */
+  reach?: "forward" | "low";
 }
 
 // prettier-ignore
@@ -344,6 +350,10 @@ const POSES: Record<FrameName, Pose> = {
   blink: { bob: 0,  leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0,  passing: false, eyesClosed: true },
   // Idle weight shift: head, torso and arms settle down by a pixel.
   sigh:  { bob: 1,  leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0,  passing: false },
+  // Use / Open: near arm reaches straight out.
+  reach: { bob: 0,  leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0,  passing: false, reach: "forward" },
+  // Get: crouch a little and reach down.
+  reachLow: { bob: 2, leftLift: 0, rightLift: 0, leftHand: 0, rightHand: 0, stride: 0, passing: false, reach: "low" },
 };
 
 /** The head grid with the eyes closed (see CharacterDesign.blinkSwap). */
@@ -427,25 +437,46 @@ function frontOrBack(d: CharacterDesign, pose: Pose, back: boolean): string[] {
     ),
   );
   // Gesture: the screen-right forearm swings in across the body.
-  const rightArm: Joints =
-    pose.gesture && !back
-      ? [
-          [rx, shoulderY + b],
-          [rx + 1, elbowY + b],
-          [rx - 2, elbowY + b + 2],
-        ]
-      : [
-          [rx, shoulderY + b],
-          [rx + 1, elbowY + b],
-          [rx + 1, wristY + b + pose.rightHand],
-        ];
+  // Reach: the screen-right arm stretches out to the side (forward) or
+  // down and out (low).
+  let rightArm: Joints;
+  let rightHand: HandPlacement = "below";
+  if (pose.reach === "forward") {
+    // Seen from the front or back the reach is towards/away from the
+    // viewer: elbow out, hand raised to chest height.
+    rightArm = [
+      [rx, shoulderY + b],
+      [rx + 2, elbowY + b - 1],
+      [rx + 1, elbowY + b + 1],
+    ];
+    rightHand = 1;
+  } else if (pose.reach === "low") {
+    rightArm = [
+      [rx, shoulderY + b],
+      [rx + 2, elbowY + b + 1],
+      [rx + 3, wristY + b + 2],
+    ];
+  } else if (pose.gesture && !back) {
+    rightArm = [
+      [rx, shoulderY + b],
+      [rx + 1, elbowY + b],
+      [rx - 2, elbowY + b + 2],
+    ];
+    rightHand = -1;
+  } else {
+    rightArm = [
+      [rx, shoulderY + b],
+      [rx + 1, elbowY + b],
+      [rx + 1, wristY + b + pose.rightHand],
+    ];
+  }
   canvas.stamp(
     arm(
       d,
       screenRight,
       rightArm,
       back, // light comes from the top-left, so shade this arm from behind
-      pose.gesture && !back ? -1 : "below",
+      rightHand,
     ),
   );
   return canvas.rows();
@@ -526,14 +557,31 @@ function side(
   canvas.stamp(grid(headRows, d.head.sideX, d.head.y + b));
   canvas.stamp(grid(view(d.torso), d.torso.sideX, d.torso.y + b));
   // Gesture: the near forearm comes up and forward, palm out.
-  const nearArm: Joints = pose.gesture
-    ? [
-        [sideX, shoulderY + b],
-        [sideX + 1, elbowY + b],
-        [sideX + 4, elbowY + b + 1],
-      ]
-    : armJoints(sideX, swing);
-  canvas.stamp(arm(d, near, nearArm, false, pose.gesture ? 1 : "below"));
+  // Reach: the near arm stretches forward (use/open) or down (get).
+  let nearArm: Joints = armJoints(sideX, swing);
+  let nearHand: HandPlacement = "below";
+  if (pose.reach === "forward") {
+    nearArm = [
+      [sideX, shoulderY + b],
+      [sideX + 3, elbowY + b - 1],
+      [sideX + 7, elbowY + b + 1],
+    ];
+    nearHand = 1;
+  } else if (pose.reach === "low") {
+    nearArm = [
+      [sideX, shoulderY + b],
+      [sideX + 2, elbowY + b + 1],
+      [sideX + 5, wristY + b + 3],
+    ];
+  } else if (pose.gesture) {
+    nearArm = [
+      [sideX, shoulderY + b],
+      [sideX + 1, elbowY + b],
+      [sideX + 4, elbowY + b + 1],
+    ];
+    nearHand = 1;
+  }
+  canvas.stamp(arm(d, near, nearArm, false, nearHand));
   return canvas.rows();
 }
 
