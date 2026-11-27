@@ -1,6 +1,7 @@
 import { Sprite } from "pixi.js";
 import { Position } from "./types";
-import { CharacterSprites, Direction } from "./SpriteGenerator";
+import { CharacterSprites, Direction, pixelRowsFor } from "./SpriteGenerator";
+import { spriteHit } from "./sprites/hitTest";
 import { talkFrameAt } from "./TalkAnimation";
 import { speechAnchorY } from "./SpeechBubble";
 import { IdleAnimator, NPC_IDLE, seedFrom } from "./IdleAnimation";
@@ -416,14 +417,36 @@ export class NPC {
     };
   }
 
-  // Check if a point is within the NPC's clickable area
+  /**
+   * Is a point on the NPC? Uses the drawn pixels of the current frame (with
+   * a one-pixel margin) so the empty space around the character doesn't
+   * block clicks on things behind it; falls back to the sprite rectangle.
+   */
   containsPoint(x: number, y: number): boolean {
     const bounds = this.getBounds();
-    return (
+    const inBounds =
       x >= bounds.x &&
       x <= bounds.x + bounds.width &&
       y >= bounds.y &&
-      y <= bounds.y + bounds.height
+      y <= bounds.y + bounds.height;
+    if (!inBounds) return false;
+
+    const rows = pixelRowsFor(this.sprite.texture);
+    if (!rows) return true;
+    return spriteHit(
+      rows,
+      {
+        x: this.sprite.x,
+        y: this.sprite.y,
+        anchorX: this.sprite.anchor.x,
+        anchorY: this.sprite.anchor.y,
+        textureWidth: this.sprite.texture.width,
+        textureHeight: this.sprite.texture.height,
+        scaleX: this.sprite.scale.x,
+        scaleY: this.sprite.scale.y,
+      },
+      x,
+      y,
     );
   }
 
