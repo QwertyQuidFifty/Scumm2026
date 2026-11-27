@@ -25,8 +25,24 @@ export const SPRITE_WIDTH = 32;
 export const SPRITE_HEIGHT = 48;
 export const TRANSPARENT = "0";
 export const OUTLINE = "K";
-/** Ground line: the bottom row of the boot soles. */
+/** Ground line used while composing: the bottom row of the boot soles. */
 export const GROUND = 44;
+/**
+ * Finished frames are moved down so the outline under the soles is the
+ * sprite's last row. Sprites are anchored at their bottom edge, so this puts
+ * the character's feet exactly on their position instead of a few pixels
+ * above it.
+ */
+const FEET_DROP = SPRITE_HEIGHT - 1 - (GROUND + 1);
+
+function dropToFloor(rows: string[]): string[] {
+  if (FEET_DROP <= 0) return rows;
+  const blank = TRANSPARENT.repeat(SPRITE_WIDTH);
+  return [
+    ...Array<string>(FEET_DROP).fill(blank),
+    ...rows.slice(0, SPRITE_HEIGHT - FEET_DROP),
+  ];
+}
 
 /** A part seen from the front, back and side (side faces right). */
 export interface PartViews {
@@ -489,16 +505,16 @@ export function buildCharacterFrames(
   };
   for (const name of FRAME_NAMES) {
     const pose = POSES[name];
-    frames.down.push({ name, data: frontOrBack(d, pose, false) });
-    frames.up.push({ name, data: frontOrBack(d, pose, true) });
+    frames.down.push({ name, data: dropToFloor(frontOrBack(d, pose, false)) });
+    frames.up.push({ name, data: dropToFloor(frontOrBack(d, pose, true)) });
     // Facing right the viewer sees the character's left side.
     frames.right.push({
       name,
-      data: side(d, pose, d.arms.left, d.arms.right, false),
+      data: dropToFloor(side(d, pose, d.arms.left, d.arms.right, false)),
     });
     frames.left.push({
       name,
-      data: mirror(side(d, pose, d.arms.right, d.arms.left, true)),
+      data: dropToFloor(mirror(side(d, pose, d.arms.right, d.arms.left, true))),
     });
   }
   return frames;

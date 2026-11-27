@@ -20,6 +20,7 @@ export interface Stage {
   backgroundWidth: number;
   backgroundHeight: number;
   walkableArea: Position[];
+  obstacles?: Position[][]; // Footprints of props inside the walkable area that block walking
   objects: InteractiveObjectData[];
   npcs?: NPCData[]; // Optional NPCs for this stage
   characterStartPosition: Position;

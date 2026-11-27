@@ -6,13 +6,17 @@ import { KeySprite } from "./KeySprite";
 import { NPCManager } from "./NPCManager";
 import { DepthManager } from "./DepthManager";
 import { StageOverlayManager } from "./StageOverlay";
-import { StageOverlayAssets } from "./StageOverlayAssets";
+import { StageOverlayAssets, STOOL_FOOTPRINT } from "./StageOverlayAssets";
+import { DOOR_POLYGON } from "./overlays/openDoorway";
+import { NeonSignLayer } from "./effects/NeonSignLayer";
+import { signsForStage } from "./effects/neonSigns";
 
 export class StageManager {
   private stages: Map<string, Stage> = new Map();
   private transitions: StageTransition[] = [];
   private currentStage?: Stage;
   private backgroundSprite?: Sprite;
+  private neonLayer?: NeonSignLayer;
   private keySprite?: KeySprite;
   private stageContainer: Container;
   private assetManager: AssetManager;
@@ -91,12 +95,7 @@ export class StageManager {
           height: 60 * (768 / 200),
           description: "A dark building entrance",
           defaultAction: "open",
-          polygon: [
-            { x: 58, y: 450 }, // 381 + 40
-            { x: 124, y: 470 }, // 393 + 40
-            { x: 124, y: 634 }, // 594 + 40
-            { x: 58, y: 650 }, // 610 + 40
-          ],
+          polygon: DOOR_POLYGON, // shared with the open-door overlay art
         },
         {
           id: "cryptic-door",
@@ -262,6 +261,7 @@ export class StageManager {
         ["exit-door", { x: 850, y: 620 }], // Near the exit door, within walkable area
         ["stool-small", { x: 500, y: 680 }], // In front of the stool, within walkable area
       ]),
+      obstacles: [STOOL_FOOTPRINT], // Walk around the stool's legs
       perspectiveScale: {
         minY: 613, // At back of room
         maxY: 772, // At front of room
@@ -453,6 +453,11 @@ export class StageManager {
             assetDef.fillColor,
             assetDef.innerFillColor,
           );
+        } else if (assetDef.assetType === "pixelart" && assetDef.pixelArt) {
+          texture = StageOverlayAssets.createPixelArtTexture(
+            this.renderer!,
+            assetDef.pixelArt,
+          );
         } else if (assetDef.assetType === "png" && assetDef.pngPath) {
           // Load PNG asset
           try {
@@ -497,7 +502,8 @@ export class StageManager {
                 backgroundCount++;
                 break;
               case "inline":
-                yPosition = assetDef.position.y; // Same as object position for depth sorting
+                // Depth line where the prop meets the floor
+                yPosition = assetDef.depthY ?? assetDef.position.y;
                 break;
               case "foreground":
                 yPosition = 10000 + foregroundCount; // In front of everything
@@ -568,6 +574,25 @@ export class StageManager {
         -1000, // Very low Y position to ensure it's always behind everything
         "object",
       );
+
+      // Animated neon sign overlays, just above the background
+      const signs = signsForStage(stage.id);
+      if (signs.length > 0 && this.renderer) {
+        this.neonLayer = new NeonSignLayer(
+          this.renderer,
+          backgroundTexture,
+          signs,
+          { width: stage.backgroundWidth, height: stage.backgroundHeight },
+        );
+        this.neonLayer.container.x = this.backgroundSprite.x;
+        this.neonLayer.container.y = this.backgroundSprite.y;
+        this.depthManager.registerSprite(
+          "neon-signs",
+          this.neonLayer.container,
+          -999,
+          "object",
+        );
+      }
       console.log(
         "Registered background sprite with depth manager at Y position -1000",
       );
@@ -743,6 +768,13 @@ export class StageManager {
       this.depthManager.unregisterSprite("background");
     }
 
+    // Remove neon sign overlays
+    if (this.neonLayer) {
+      this.depthManager?.unregisterSprite("neon-signs");
+      this.neonLayer.destroy();
+      this.neonLayer = undefined;
+    }
+
     // Remove background sprite
     if (this.backgroundSprite) {
       this.backgroundSprite.destroy();
@@ -785,6 +817,11 @@ export class StageManager {
 
     // Clear stage container
     this.stageContainer.removeChildren();
+  }
+
+  /** Animate per-stage background effects (neon signs). */
+  updateEffects(timeMs: number): void {
+    this.neonLayer?.update(timeMs);
   }
 
   getStageContainer(): Container {

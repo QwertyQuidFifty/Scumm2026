@@ -2,7 +2,6 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildCharacterFrames,
-  GROUND,
   SPRITE_HEIGHT,
   SPRITE_WIDTH,
   TRANSPARENT,
@@ -110,11 +109,11 @@ for (const [name, design] of designs) {
       }
     });
 
-    test("feet touch the ground line in every frame", () => {
+    test("the outline under the feet is the sprite's bottom row in every frame", () => {
       for (const dir of DIRECTIONS) {
         for (const frame of frames[dir]) {
           const lowest = frame.data.findLastIndex((row) => /[^0]/.test(row));
-          assert.equal(lowest, GROUND + 1, `${dir}/${frame.name}`); // + outline
+          assert.equal(lowest, SPRITE_HEIGHT - 1, `${dir}/${frame.name}`);
         }
       }
     });

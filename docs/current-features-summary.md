@@ -39,13 +39,21 @@ This document captures all implemented features in the current SCUMM-style cyber
 ### Character Movement
 - **Speed**: 60 pixels per second
 - **Movement Type**: Smooth linear interpolation to target
-- **Pathfinding**: Point-in-polygon collision detection for walkable areas
+- **Pathfinding**: Visibility-graph routing over the stage's walkable polygon with obstacle holes (`src/navigation/pathfinding.ts`). The character walks straight when nothing is in the way, otherwise follows the quickest route around obstacle corners (cost accounts for the stage's slower vertical movement). Clicking inside an obstacle walks to the nearest point beside it.
+- **Obstacles**: `Stage.obstacles` lists floor footprints of props (e.g. the shop stool's legs, `STOOL_FOOTPRINT`). Props drawn as inline overlays use `depthY` (where they meet the floor) for depth sorting, so characters are behind them from above and in front from below.
+- **Debug view**: press **W** to draw the walkable area (green), obstacles (red) and the current route (yellow).
 - **Animation**: Walking animation plays during movement, stops when arrived
 
 ### Walkable Areas (Defined as Polygons)
 1. **Main Street**: `[(0,140), (320,140), (320,200), (0,200)]`
 2. **Left Sidewalk**: `[(0,120), (100,120), (100,140), (0,140)]`
 3. **Right Sidewalk**: `[(200,120), (320,120), (320,140), (200,140)]`
+
+### Animated Neon Signs
+- Signs painted into the backgrounds get animated overlays (`src/effects/neonSigns.ts` defines them, `src/effects/NeonSignLayer.ts` renders them).
+- The neon pixels (bright and saturated) inside each sign's rectangle are cut out of the background texture at runtime, so overlays match the art exactly and no extra image files are needed.
+- Each segment (a whole sign, or one letter of HOTEL) has a behaviour: `pulse` (slow breathing), `buzz` (occasional flicker burst), `broken` (stutters and cuts out; HOTEL's E) or `fluorescent` (rare quick double-flicker; the shop's strip light). A blurred additive halo follows the brightness.
+- To add a sign: add an entry with its rectangle in background coordinates (1024x768) and stage id to `NEON_SIGNS`.
 
 ## Interactive Object System
 
