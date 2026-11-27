@@ -1,4 +1,4 @@
-import { Application, Sprite, Container } from "pixi.js";
+import { Application, Sprite, Container, Graphics } from "pixi.js";
 import { GameConfig, GameState, Position } from "./types";
 import { AssetManager } from "./AssetManager";
 import { SpriteGenerator, CharacterSprites } from "./SpriteGenerator";
@@ -41,6 +41,8 @@ export class Game {
   private npcManager: NPCManager;
   private depthManager?: DepthManager;
   private gameWorldContainer?: Container;
+  /** Debug drawing of walkable area, obstacles and the current route (W key). */
+  private navDebug?: Graphics;
   private dialogueManager: DialogueManager;
   private dialogueUI?: DialogueUI;
 
@@ -333,6 +335,7 @@ export class Game {
 
     // Set up walkable area from current stage
     this.characterController.setWalkableArea(currentStage.walkableArea);
+    this.characterController.setObstacles(currentStage.obstacles ?? []);
 
     // Set up interaction points from current stage
     if (currentStage.interactionPoints) {
@@ -954,6 +957,11 @@ export class Game {
       return; // Dialogue UI consumed the input
     }
 
+    if (key === "w") {
+      this.toggleNavDebug();
+      return;
+    }
+
     // NPC movement testing commands
     if (key === "n") {
       // Move random NPC to random position
@@ -1552,6 +1560,7 @@ export class Game {
 
     // Update character controller with new stage's walkable area
     this.characterController.setWalkableArea(result.stage.walkableArea);
+    this.characterController.setObstacles(result.stage.obstacles ?? []);
 
     // Update interaction points for the new stage
     if (result.stage.interactionPoints) {
@@ -1611,6 +1620,45 @@ export class Game {
 
     // Revert to walk action after transition
     this.revertToWalkAction();
+  }
+
+  /** Toggle the walkable area / obstacle / route debug drawing. */
+  private toggleNavDebug(): void {
+    if (!this.navDebug) {
+      this.navDebug = new Graphics();
+      const worldIndex = this.gameWorldContainer
+        ? this.app.stage.getChildIndex(this.gameWorldContainer)
+        : 0;
+      this.app.stage.addChildAt(this.navDebug, worldIndex + 1);
+      this.navDebug.visible = false;
+    }
+    this.navDebug.visible = !this.navDebug.visible;
+    if (this.navDebug.visible) this.drawNavDebug();
+    console.log(`Navigation debug ${this.navDebug.visible ? "on" : "off"}`);
+  }
+
+  private drawNavDebug(): void {
+    const g = this.navDebug;
+    const mesh = this.characterController?.getNavMesh();
+    if (!g || !this.characterController) return;
+    g.clear();
+    const stage = this.stageManager.getCurrentStage();
+    if (stage) {
+      g.poly(stage.walkableArea).stroke({ color: 0x00ff66, width: 2 });
+      for (const obstacle of stage.obstacles ?? []) {
+        g.poly(obstacle).fill({ color: 0xff3030, alpha: 0.35 });
+      }
+    }
+    for (const blocker of mesh?.getBlockers() ?? []) {
+      g.poly(blocker).stroke({ color: 0xff3030, width: 1 });
+    }
+    const route = this.characterController.getRoute();
+    if (route.length && this.characterSprite) {
+      g.moveTo(this.characterSprite.x, this.characterSprite.y);
+      for (const p of route) g.lineTo(p.x, p.y);
+      g.stroke({ color: 0xffe040, width: 2 });
+      for (const p of route) g.circle(p.x, p.y, 3).fill(0xffe040);
+    }
   }
 
   /** Show a line spoken by the player above their head (plays their talk animation). */
@@ -2014,10 +2062,15 @@ export class Game {
     // Update NPCs
     this.npcManager.update(currentTime);
 
+    // Animate background effects (neon signs)
+    this.stageManager.updateEffects(currentTime);
+
     // SCUMM-style depth sorting: only when needed, not every frame
     if (this.depthManager) {
       this.depthManager.sortSpritesIfNeeded();
     }
+
+    if (this.navDebug?.visible) this.drawNavDebug();
 
     // Update character perspective scaling based on Y position
     if (this.characterSprite) {

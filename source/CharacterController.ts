@@ -3,6 +3,7 @@ import { Position } from "./types";
 import { CharacterSprites, Direction } from "./SpriteGenerator";
 import { InteractiveObject } from "./InteractiveObject";
 import { talkFrameAt } from "./TalkAnimation";
+import { NavMesh } from "./navigation/pathfinding";
 
 interface MovementState {
   isMoving: boolean;
@@ -27,6 +28,10 @@ export class CharacterController {
   private animationState: AnimationState;
   private moveSpeed: number = 180; // pixels per second (increased 50% from 120 for better feel)
   private walkableArea?: Position[]; // The street polygon
+  private obstacles: Position[][] = []; // Footprints of props that block walking
+  private navMesh?: NavMesh; // Rebuilt lazily when the area or obstacles change
+  /** Remaining points of the current route, walked in order. */
+  private route: Position[] = [];
   private moveCallback?: (position: Position) => void; // Callback for position updates
   /** Reports whether the player's own speech is currently shown. */
   private isSpeaking?: () => boolean;
@@ -70,6 +75,36 @@ export class CharacterController {
 
   setWalkableArea(polygon: Position[]): void {
     this.walkableArea = [...polygon];
+    this.navMesh = undefined;
+  }
+
+  /** Footprints of props the character must walk around. */
+  setObstacles(obstacles: Position[][]): void {
+    this.obstacles = obstacles.map((o) => o.map((p) => ({ ...p })));
+    this.navMesh = undefined;
+  }
+
+  /** The current navigation data (for debug drawing). */
+  getNavMesh(): NavMesh | undefined {
+    return this.getMesh();
+  }
+
+  /** Points still to walk to on the current route. */
+  getRoute(): Position[] {
+    return this.movementState.isMoving
+      ? [{ ...this.movementState.targetPosition }, ...this.route]
+      : [];
+  }
+
+  private getMesh(): NavMesh | undefined {
+    if (!this.walkableArea || this.walkableArea.length < 3) return undefined;
+    if (!this.navMesh) {
+      this.navMesh = new NavMesh(
+        { walkable: this.walkableArea, obstacles: this.obstacles },
+        { yFactor: this.yMovementFactor },
+      );
+    }
+    return this.navMesh;
   }
 
   setInteractionPoints(interactionPoints: Map<string, Position>): void {
@@ -80,81 +115,72 @@ export class CharacterController {
   }
 
   isPositionWalkable(x: number, y: number): boolean {
-    if (!this.walkableArea || this.walkableArea.length < 3) {
-      return true; // If no walkable area defined, allow all positions
-    }
-
-    return this.isPointInPolygon(x, y, this.walkableArea);
+    const mesh = this.getMesh();
+    if (!mesh) return true; // If no walkable area defined, allow all positions
+    return mesh.isWalkable({ x, y });
   }
 
-  private isPointInPolygon(x: number, y: number, polygon: Position[]): boolean {
-    let inside = false;
-    const n = polygon.length;
-
-    for (let i = 0, j = n - 1; i < n; j = i++) {
-      const xi = polygon[i].x;
-      const yi = polygon[i].y;
-      const xj = polygon[j].x;
-      const yj = polygon[j].y;
-
-      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
-        inside = !inside;
-      }
-    }
-
-    return inside;
-  }
-
+  /**
+   * Walk to a point, routing around obstacles. Clicking inside an obstacle
+   * walks to the nearest point beside it. Returns false if the point is off
+   * the floor or unreachable.
+   */
   moveTo(targetX: number, targetY: number): boolean {
-    // Check if target position is walkable (original coordinates)
-    if (!this.isPositionWalkable(targetX, targetY)) {
+    const start = { x: this.sprite.x, y: this.sprite.y };
+    const mesh = this.getMesh();
+    const route = mesh
+      ? mesh.findPath(start, { x: targetX, y: targetY })
+      : [{ x: targetX, y: targetY }];
+
+    if (!route || route.length === 0) {
       console.log(
         `Cannot move to (${targetX}, ${targetY}) - position is not walkable`,
       );
       return false;
     }
 
-    // Calculate movement parameters with different axis speeds
+    console.log(
+      `Moving character from (${start.x}, ${start.y}) to (${targetX}, ${targetY}) via ${route.length} leg(s)`,
+    );
+    this.route = route;
+    this.startNextLeg(performance.now());
+    return true;
+  }
+
+  /** Begin walking the next point of the route. */
+  private startNextLeg(now: number): void {
+    const next = this.route.shift();
+    if (!next) return;
+
     const startX = this.sprite.x;
     const startY = this.sprite.y;
-    const deltaX = targetX - startX;
-    const deltaY = targetY - startY;
+    const deltaX = next.x - startX;
+    const deltaY = next.y - startY;
 
-    // Calculate time needed for each axis at their respective speeds
-    const xSpeed = this.moveSpeed; // Normal speed for X
-    const ySpeed = this.moveSpeed * this.yMovementFactor; // Reduced speed for Y
-
-    const xTime = Math.abs(deltaX) / xSpeed;
-    const yTime = Math.abs(deltaY) / ySpeed;
-
-    // Use the longer time so both axes complete simultaneously
+    // Horizontal and vertical motion run at different speeds and finish together
+    const xTime = Math.abs(deltaX) / this.moveSpeed;
+    const yTime = Math.abs(deltaY) / (this.moveSpeed * this.yMovementFactor);
     const duration = Math.max(xTime, yTime);
 
-    // Update movement state with original target coordinates
     this.movementState = {
       isMoving: true,
       startPosition: { x: startX, y: startY },
-      targetPosition: { x: targetX, y: targetY },
-      startTime: performance.now(),
+      targetPosition: { x: next.x, y: next.y },
+      startTime: now,
       duration: duration * 1000, // convert to milliseconds
     };
 
-    // Calculate and update direction based on movement
-    const newDirection = this.calculateDirection(
-      { x: startX, y: startY },
-      { x: targetX, y: targetY },
-    );
-    this.updateDirection(newDirection);
+    // Face the way this leg goes (tiny legs keep the current facing)
+    if (Math.hypot(deltaX, deltaY) > 1) {
+      this.updateDirection(
+        this.calculateDirection({ x: startX, y: startY }, next),
+      );
+    }
 
-    // Start walking animation
-    this.animationState.isWalking = true;
-    this.animationState.frameStartTime = performance.now();
-
-    console.log(
-      `Moving character from (${startX}, ${startY}) to (${targetX}, ${targetY}) over ${duration.toFixed(2)}s`,
-    );
-
-    return true;
+    if (!this.animationState.isWalking) {
+      this.animationState.isWalking = true;
+      this.animationState.frameStartTime = now;
+    }
   }
 
   moveToObject(object: InteractiveObject): boolean {
@@ -229,7 +255,11 @@ export class CharacterController {
       this.moveCallback({ x, y });
     }
 
-    // Check if movement is complete
+    // Check if this leg is complete
+    if (progress >= 1.0 && this.route.length > 0) {
+      this.startNextLeg(currentTime);
+      return;
+    }
     if (progress >= 1.0) {
       this.movementState.isMoving = false;
       this.animationState.isWalking = false;
@@ -338,6 +368,7 @@ export class CharacterController {
 
   setYMovementFactor(factor: number): void {
     this.yMovementFactor = Math.max(0.1, Math.min(1.0, factor)); // Clamp between 0.1 and 1.0
+    this.navMesh = undefined; // route costs depend on it
   }
 
   /** Supply a check for whether the player's own speech is on screen. */

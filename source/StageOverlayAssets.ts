@@ -1,7 +1,30 @@
 import { Graphics, RenderTexture, Renderer } from "pixi.js";
 import { Position } from "./types";
+import { buildOpenDoorway, type PixelArtImage } from "./overlays/openDoorway";
 
 export type OverlayZIndexType = "foreground" | "inline" | "background";
+
+/**
+ * Floor patch under the shop stool's four legs (game coordinates, a
+ * perspective quad: back-left, back-right, front-right, front-left). It is
+ * an obstacle the player walks around, and the stool's depth line runs
+ * through its middle so the player is drawn behind the stool when above it
+ * and in front when below it.
+ *
+ * The front edge sits 12px below the front feet (y 685 / 674): character
+ * sprites have blank rows under their soles, so at the shop's scale a
+ * character's visible feet are ~11px above their position. The extra depth
+ * keeps the route in front of the stool clearly below its front legs.
+ */
+export const STOOL_FOOTPRINT: Position[] = [
+  { x: 550, y: 662 },
+  { x: 620, y: 654 },
+  { x: 655, y: 686 },
+  { x: 580, y: 697 },
+];
+const STOOL_DEPTH_Y = Math.round(
+  STOOL_FOOTPRINT.reduce((sum, p) => sum + p.y, 0) / STOOL_FOOTPRINT.length,
+);
 
 export interface OverlayAssetDefinition {
   id: string;
@@ -12,16 +35,21 @@ export interface OverlayAssetDefinition {
   width: number;
   height: number;
   zIndexType: OverlayZIndexType; // New: foreground, inline, or background
+  // For inline overlays: the y used for depth sorting (defaults to position.y,
+  // the image's bottom edge). Set it to where the prop touches the floor.
+  depthY?: number;
   visible: boolean;
   triggerAction?: string;
-  // Asset type - either polygon data or PNG file reference
-  assetType: "polygon" | "png";
+  // Asset type - polygon data, PNG file reference, or generated pixel art
+  assetType: "polygon" | "png" | "pixelart";
   // For polygon assets
   polygon?: Position[];
   fillColor?: number;
   innerFillColor?: number; // For gradient effect
   // For PNG assets
   pngPath?: string;
+  // For pixel-art assets
+  pixelArt?: PixelArtImage;
 }
 
 export class StageOverlayAssets {
@@ -73,6 +101,35 @@ export class StageOverlayAssets {
   }
 
   /**
+   * Generate a texture from pixel-art rows (each art pixel drawn as a
+   * pixelSize square, with per-colour alpha).
+   */
+  static createPixelArtTexture(
+    renderer: Renderer,
+    art: PixelArtImage,
+  ): RenderTexture {
+    const graphics = new Graphics();
+    const size = art.pixelSize;
+    art.rows.forEach((row, y) => {
+      for (let x = 0; x < row.length; x++) {
+        const entry = art.palette[row[x]];
+        if (!entry) continue; // '.' and unknown keys are transparent
+        graphics
+          .rect(x * size, y * size, size, size)
+          .fill({ color: entry.color, alpha: entry.alpha });
+      }
+    });
+
+    const renderTexture = RenderTexture.create({
+      width: art.rows[0].length * size,
+      height: art.rows.length * size,
+    });
+    renderer.render(graphics, { renderTexture });
+    graphics.destroy();
+    return renderTexture;
+  }
+
+  /**
    * Get all overlay asset definitions for a specific stage
    */
   static getStageOverlayAssets(stageId: string): OverlayAssetDefinition[] {
@@ -84,30 +141,32 @@ export class StageOverlayAssets {
   /**
    * Get all overlay asset definitions
    */
+  /** The lit, open doorway shown when the building entrance is opened. */
+  private static openDoorwayOverlay(): OverlayAssetDefinition {
+    const art = buildOpenDoorway();
+    const width = art.rows[0].length * art.pixelSize;
+    const height = art.rows.length * art.pixelSize;
+    return {
+      id: "building-entrance-open-door",
+      objectId: "building-entrance",
+      stageName: "cyberpunk-street",
+      assetKey: "building_entrance_open",
+      // Overlays are anchored bottom-left
+      position: { x: art.x, y: art.y + height },
+      width,
+      height,
+      zIndexType: "background", // Behind characters and NPCs
+      visible: false, // Initially hidden
+      triggerAction: "open",
+      assetType: "pixelart",
+      pixelArt: art,
+    };
+  }
+
   static getAllOverlayAssets(): OverlayAssetDefinition[] {
     return [
       // Building entrance open door for cyberpunk-street stage
-      {
-        id: "building-entrance-open-door",
-        objectId: "building-entrance",
-        stageName: "cyberpunk-street",
-        assetKey: "building_entrance_open",
-        position: { x: 58, y: 634 }, // Match the polygon coordinates
-        width: 96,
-        height: 230,
-        zIndexType: "background", // Behind characters and NPCs
-        visible: false, // Initially hidden
-        triggerAction: "open",
-        assetType: "polygon",
-        polygon: [
-          { x: 0, y: 450 - 634 }, // Top-left: (58-58, 450-634) = (0, -184)
-          { x: 124 - 58, y: 470 - 634 }, // Top-right: (124-58, 470-634) = (66, -164)
-          { x: 124 - 58, y: 634 - 634 }, // Bottom-right: (124-58, 634-634) = (66, 0)
-          { x: 0, y: 650 - 634 }, // Bottom-left: (58-58, 650-634) = (0, 16)
-        ],
-        fillColor: 0x0f0f0f, // Very dark base
-        innerFillColor: 0x2a1f0f, // Dim warm light in center area
-      },
+      this.openDoorwayOverlay(),
 
       // Small stool in mechstore
       {
@@ -119,6 +178,7 @@ export class StageOverlayAssets {
         width: 64, // Estimated width for small stool
         height: 64, // Estimated height for small stool
         zIndexType: "inline", // Y-position based depth like NPCs
+        depthY: STOOL_DEPTH_Y, // where its legs meet the floor, not the image edge
         visible: true, // Visible by default (it's a static object)
         assetType: "png",
         pngPath: "./assets/stool-small.png",
