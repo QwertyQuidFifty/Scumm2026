@@ -12,6 +12,7 @@ export class NPCManager {
   private spriteGenerator?: SpriteGenerator;
   private renderer?: Renderer;
   private depthManager?: DepthManager;
+  private isCovered?: (x: number, y: number, depthY: number) => boolean;
   private perspectiveScaler?: PerspectiveScaler;
 
   constructor() {
@@ -24,6 +25,16 @@ export class NPCManager {
   ): void {
     this.spriteGenerator = spriteGenerator;
     this.renderer = renderer;
+  }
+
+  /**
+   * Supply a check for whether scenery drawn in front of a given depth
+   * covers a point, so hidden parts of NPCs can't be clicked.
+   */
+  setOcclusionCheck(
+    check: (x: number, y: number, depthY: number) => boolean,
+  ): void {
+    this.isCovered = check;
   }
 
   setDepthManager(depthManager: DepthManager): void {
@@ -155,17 +166,20 @@ export class NPCManager {
     return Array.from(this.npcs.values());
   }
 
-  // Get NPC at a specific position (for click detection)
+  /**
+   * The NPC under a point (for clicks and hover): it must be drawn there
+   * and not hidden behind scenery in front of it. When NPCs overlap, the
+   * one drawn in front (lowest on screen) wins.
+   */
   getNPCAtPosition(x: number, y: number): NPC | undefined {
-    // Check NPCs in reverse order (top to bottom in rendering)
-    const npcArray = Array.from(this.npcs.values());
-    for (let i = npcArray.length - 1; i >= 0; i--) {
-      const npc = npcArray[i];
-      if (npc.containsPoint(x, y)) {
-        return npc;
-      }
+    let best: NPC | undefined;
+    for (const npc of this.npcs.values()) {
+      if (!npc.containsPoint(x, y)) continue;
+      const depthY = npc.getPosition().y;
+      if (this.isCovered?.(x, y, depthY)) continue;
+      if (!best || depthY > best.getPosition().y) best = npc;
     }
-    return undefined;
+    return best;
   }
 
   // Clear all NPCs (useful for stage transitions)

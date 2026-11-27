@@ -127,3 +127,24 @@ export function cutPolygon(
   }
   return { data, x: x0, y: y0, width: w, height: h };
 }
+
+/** Does a walk-behind cover a point given in game (world) coordinates? */
+export function walkBehindCovers(w: WalkBehind, x: number, y: number): boolean {
+  return inside({ x, y: y - BACKGROUND_OFFSET_Y }, w.polygon);
+}
+
+/**
+ * The scenery drawn in front of something whose depth line is `depthY`
+ * that covers the point (x, y) in game coordinates, if any. Clicks at that
+ * point belong to the scenery, not to whatever is behind it.
+ */
+export function coveringScenery(
+  stageId: string,
+  x: number,
+  y: number,
+  depthY: number,
+): WalkBehind | undefined {
+  return walkBehindsForStage(stageId).find(
+    (w) => w.depthY > depthY && walkBehindCovers(w, x, y),
+  );
+}

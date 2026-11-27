@@ -53,6 +53,7 @@ This document captures all implemented features in the current SCUMM-style cyber
 ### Walk-behinds
 - Parts of a background picture that characters can stand behind (`src/effects/walkBehinds.ts`, rendered by `WalkBehindLayer.ts`). Each is an outline polygon in background coordinates plus a depth line (its base on the floor, in game coordinates). Its pixels are cut out of the background at runtime and depth-sorted like a sprite, so characters with feet above the line are drawn behind it.
 - The shop counter (with the cash register) is one; the android shopkeeper (`android` design, NPC `shopkeeper`) stands behind it.
+- Clicks respect depth: an NPC is only clicked on its drawn pixels, and not where scenery drawn in front of it covers it (`coveringScenery` in `walkBehinds.ts`, used by `NPCManager.getNPCAtPosition`). Overlapping NPCs: the one drawn in front wins.
 - Speech text is placed just above a character's head at any scale (`speechAnchorY` in `SpeechBubble.ts`).
 
 ### Animated Neon Signs

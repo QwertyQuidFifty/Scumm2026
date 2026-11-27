@@ -2,9 +2,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   BACKGROUND_OFFSET_Y,
+  coveringScenery,
   cutPolygon,
   polygonBounds,
   SHOP_COUNTER,
+  walkBehindCovers,
   walkBehindsForStage,
 } from "../src/effects/walkBehinds.ts";
 
@@ -77,4 +79,39 @@ test("walk-behinds are looked up by stage", () => {
     ["shop-counter"],
   );
   assert.deepEqual(walkBehindsForStage("cyberpunk-street"), []);
+});
+
+// The shopkeeper stands behind the counter with its feet at y=525; the
+// counter's depth line is 607 and its outline sits 40px lower on screen
+// than in the background image.
+const SHOPKEEPER_DEPTH = 525;
+
+test("the counter covers its own area for things behind it", () => {
+  // Middle of the counter's front, in game coordinates.
+  assert.ok(coveringScenery("test-indoor", 435, 520, SHOPKEEPER_DEPTH));
+  // The cash register on the left end too.
+  assert.ok(coveringScenery("test-indoor", 300, 410, SHOPKEEPER_DEPTH));
+});
+
+test("the counter does not cover points above its top edge", () => {
+  // The shopkeeper's head is above the counter top (y=434 on screen).
+  assert.equal(
+    coveringScenery("test-indoor", 435, 400, SHOPKEEPER_DEPTH),
+    undefined,
+  );
+});
+
+test("the counter never covers things in front of it", () => {
+  // Something standing on the floor in front (depth 640) is not hidden.
+  assert.equal(coveringScenery("test-indoor", 435, 520, 640), undefined);
+});
+
+test("walkBehindCovers accounts for the background offset", () => {
+  // y=560 in the image is inside the counter; that is y=600 in game.
+  assert.equal(walkBehindCovers(SHOP_COUNTER, 435, 600), true);
+  assert.equal(walkBehindCovers(SHOP_COUNTER, 435, 620), false);
+});
+
+test("no scenery covers anything on the street", () => {
+  assert.equal(coveringScenery("cyberpunk-street", 435, 520, 0), undefined);
 });

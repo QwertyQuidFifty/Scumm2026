@@ -12,7 +12,7 @@ import { SHOP_EXIT_POLYGON } from "./overlays/closedDoor";
 import { NeonSignLayer } from "./effects/NeonSignLayer";
 import { signsForStage } from "./effects/neonSigns";
 import { WalkBehindLayer } from "./effects/WalkBehindLayer";
-import { walkBehindsForStage } from "./effects/walkBehinds";
+import { coveringScenery, walkBehindsForStage } from "./effects/walkBehinds";
 
 export class StageManager {
   private stages: Map<string, Stage> = new Map();
@@ -319,6 +319,12 @@ export class StageManager {
 
   setNPCManager(npcManager: NPCManager): void {
     this.npcManager = npcManager;
+    // Scenery drawn in front of an NPC takes clicks on the parts it hides
+    npcManager.setOcclusionCheck(
+      (x, y, depthY) =>
+        !!this.currentStage &&
+        coveringScenery(this.currentStage.id, x, y, depthY) !== undefined,
+    );
   }
 
   setDepthManager(depthManager: DepthManager): void {
