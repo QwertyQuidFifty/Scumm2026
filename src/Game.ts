@@ -1,3 +1,4 @@
+import { buildKeyArt } from "./sprites/keyArt";
 import { Application, Sprite, Container, Graphics } from "pixi.js";
 import { GameConfig, GameState, Position } from "./types";
 import { AssetManager } from "./AssetManager";
@@ -1491,6 +1492,7 @@ export class Game {
         description: "A shiny golden key that might unlock something important",
         color: 0xffd700, // Gold color
         icon: "KEY",
+        iconArt: buildKeyArt(3),
         defaultAction: "look", // All inventory items default to Look
       };
 

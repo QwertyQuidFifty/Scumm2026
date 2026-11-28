@@ -23,6 +23,23 @@ test("has a frame, window with neon glow, push bar, keypad light and kick plate"
   }
 });
 
+test("the steel and window glow are dithered between tones", () => {
+  // Count pixels flanked left and right by the same, different tone.
+  const pairs = (keys: string[]) => {
+    let n = 0;
+    for (const row of art.rows) {
+      for (let x = 1; x < row.length - 1; x++) {
+        const [a, b, c] = [row[x - 1], row[x], row[x + 1]];
+        if (keys.includes(a) && keys.includes(b) && a === c && a !== b) n++;
+      }
+    }
+    return n;
+  };
+  assert.ok(pairs(["d", "D", "E"]) >= 30, "steel");
+  assert.ok(pairs(["g", "r", "R"]) >= 3, "window");
+  assert.ok(pairs(["D", "n"]) >= 3, "neon spill");
+});
+
 test("the door fills exactly the exit door polygon", () => {
   const d = SHOP_EXIT_DOOR;
   const P = art.pixelSize;
