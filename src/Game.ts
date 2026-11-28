@@ -21,6 +21,7 @@ import { NPC } from "./NPC";
 import { DepthManager } from "./DepthManager";
 import { DialogueManager, DialogueTree, DialogueNode } from "./DialogueTree";
 import { DialogueUI } from "./DialogueUI";
+import { lightAt, lightingForStage } from "./effects/lighting";
 
 export class Game {
   private app!: Application;
@@ -45,6 +46,7 @@ export class Game {
   private gameWorldContainer?: Container;
   /** Debug drawing of walkable area, obstacles and the current route (W key). */
   private navDebug?: Graphics;
+  private lightDebug?: Graphics;
   private dialogueManager: DialogueManager;
   private dialogueUI?: DialogueUI;
 
@@ -964,6 +966,11 @@ export class Game {
       return;
     }
 
+    if (key === "l") {
+      this.toggleLightDebug();
+      return;
+    }
+
     // NPC movement testing commands
     if (key === "n") {
       // Move random NPC to random position
@@ -1625,6 +1632,47 @@ export class Game {
     this.revertToWalkAction();
   }
 
+  /** Tint the player and NPCs by the light where they stand. */
+  private applyLighting(): void {
+    const stage = this.stageManager.getCurrentStage();
+    const lighting = stage ? lightingForStage(stage.id) : undefined;
+    const sprites = this.npcManager.getAllNPCs().map((npc) => npc.getSprite());
+    if (this.characterSprite) sprites.push(this.characterSprite);
+    for (const sprite of sprites) {
+      sprite.tint = lighting ? lightAt(lighting, sprite.x, sprite.y) : 0xffffff;
+    }
+  }
+
+  /** Toggle the light zone debug drawing. */
+  private toggleLightDebug(): void {
+    if (!this.lightDebug) {
+      this.lightDebug = new Graphics();
+      const worldIndex = this.gameWorldContainer
+        ? this.app.stage.getChildIndex(this.gameWorldContainer)
+        : 0;
+      this.app.stage.addChildAt(this.lightDebug, worldIndex + 1);
+    } else {
+      this.lightDebug.visible = !this.lightDebug.visible;
+    }
+    this.drawLightDebug();
+    console.log(`Light debug ${this.lightDebug.visible ? "on" : "off"}`);
+  }
+
+  /** Draw each light zone as a tinted ellipse with its centre marked. */
+  private drawLightDebug(): void {
+    const g = this.lightDebug;
+    if (!g) return;
+    g.clear();
+    const stage = this.stageManager.getCurrentStage();
+    const lighting = stage ? lightingForStage(stage.id) : undefined;
+    for (const zone of lighting?.zones ?? []) {
+      g.ellipse(zone.x, zone.y, zone.rx, zone.ry)
+        .fill({ color: zone.color, alpha: 0.12 + zone.strength * 0.15 })
+        .stroke({ color: zone.color, width: 2 });
+      g.circle(zone.x, zone.y, 4).fill(zone.color);
+    }
+  }
+
   /** Toggle the walkable area / obstacle / route debug drawing. */
   private toggleNavDebug(): void {
     if (!this.navDebug) {
@@ -2096,11 +2144,14 @@ export class Game {
     }
 
     if (this.navDebug?.visible) this.drawNavDebug();
+    if (this.lightDebug?.visible) this.drawLightDebug();
 
     // Update character perspective scaling based on Y position
     if (this.characterSprite) {
       this.perspectiveScaler.updateSpriteScale(this.characterSprite);
     }
+
+    this.applyLighting();
 
     // Update depth sorting if needed
     if (this.depthManager) {
