@@ -6,13 +6,23 @@ import { talkFrameAt } from "./TalkAnimation";
 import { IdleAnimator, PLAYER_IDLE } from "./IdleAnimation";
 import { CONTACT_MS, reachFrameAt, type ReachKind } from "./ActionAnimation";
 import { NavMesh } from "./navigation/pathfinding";
+import {
+  facingFor,
+  legSeconds,
+  speedFactorAt,
+  type PerspectiveRange,
+} from "./navigation/walking";
 
 interface MovementState {
   isMoving: boolean;
   startPosition: Position;
   targetPosition: Position;
-  startTime: number;
-  duration: number;
+  /** When progress was last advanced. */
+  lastTime: number;
+  /** How far along the leg (0..1). */
+  progress: number;
+  /** Seconds the leg takes at full speed. */
+  seconds: number;
 }
 
 interface AnimationState {
@@ -59,6 +69,7 @@ export class CharacterController {
     ["cryptic-door", { x: 896, y: 713 }], // Right side of the street below bar entrance (673 + 40)
     ["city-in-distance", { x: 470, y: 616 }], // City in distance, on street (576 + 40)
   ]);
+  private perspective?: PerspectiveRange; // Walking pace follows it
   private yMovementFactor: number = 0.5; // Factor for Y-axis movement damping (0.5 = half Y movement)
 
   constructor(sprite: Sprite, sprites: CharacterSprites) {
@@ -70,8 +81,9 @@ export class CharacterController {
       isMoving: false,
       startPosition: { x: sprite.x, y: sprite.y },
       targetPosition: { x: sprite.x, y: sprite.y },
-      startTime: 0,
-      duration: 0,
+      lastTime: 0,
+      progress: 0,
+      seconds: 0,
     };
 
     // Initialize animation state - start facing down (standard adventure game default)
@@ -174,24 +186,21 @@ export class CharacterController {
     const deltaX = next.x - startX;
     const deltaY = next.y - startY;
 
-    // Horizontal and vertical motion run at different speeds and finish together
-    const xTime = Math.abs(deltaX) / this.moveSpeed;
-    const yTime = Math.abs(deltaY) / (this.moveSpeed * this.yMovementFactor);
-    const duration = Math.max(xTime, yTime);
-
+    // Horizontal and vertical motion run at different speeds and finish
+    // together; the pace also follows perspective (see updateMovement).
     this.movementState = {
       isMoving: true,
       startPosition: { x: startX, y: startY },
       targetPosition: { x: next.x, y: next.y },
-      startTime: now,
-      duration: duration * 1000, // convert to milliseconds
+      lastTime: now,
+      progress: 0,
+      seconds: legSeconds(deltaX, deltaY, this.moveSpeed, this.yMovementFactor),
     };
 
-    // Face the way this leg goes (tiny legs keep the current facing)
+    // Face the way most of this leg's walking time goes (tiny legs keep
+    // the current facing).
     if (Math.hypot(deltaX, deltaY) > 1) {
-      this.updateDirection(
-        this.calculateDirection({ x: startX, y: startY }, next),
-      );
+      this.updateDirection(facingFor(deltaX, deltaY, this.yMovementFactor));
     }
 
     if (!this.animationState.isWalking) {
@@ -248,8 +257,17 @@ export class CharacterController {
   private updateMovement(currentTime: number): void {
     if (!this.movementState.isMoving) return;
 
-    const elapsed = currentTime - this.movementState.startTime;
-    const progress = Math.min(elapsed / this.movementState.duration, 1.0);
+    // Advance at the speed for the character's current size: smaller
+    // (further away) means fewer screen pixels per second.
+    const state = this.movementState;
+    const dt = Math.max(0, currentTime - state.lastTime) / 1000;
+    state.lastTime = currentTime;
+    const speed = speedFactorAt(this.perspective, this.sprite.y);
+    state.progress =
+      state.seconds > 0
+        ? Math.min(1, state.progress + (dt * speed) / state.seconds)
+        : 1;
+    const progress = state.progress;
 
     // Simple linear interpolation to the scaled target
     const x =
@@ -415,6 +433,11 @@ export class CharacterController {
 
   setInteractionPoint(objectId: string, position: Position): void {
     this.interactionPoints.set(objectId, { ...position });
+  }
+
+  /** The stage's perspective range; walking speed follows it. */
+  setPerspective(range: PerspectiveRange | undefined): void {
+    this.perspective = range;
   }
 
   setYMovementFactor(factor: number): void {

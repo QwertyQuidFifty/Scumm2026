@@ -89,6 +89,18 @@ test("targets off the floor are rejected", () => {
   assert.equal(mesh.findPath({ x: 20, y: 20 }, { x: 500, y: 20 }), null);
 });
 
+test("clicking just below the floor walks to the floor above the click", () => {
+  const path = mesh.findPath({ x: 20, y: 20 }, { x: 300, y: 260 });
+  assert.ok(path, "should find a path");
+  const end = path![path!.length - 1];
+  assert.equal(end.x, 300);
+  assert.ok(end.y < 200 && end.y > 190, `stopped at y=${end.y}`);
+});
+
+test("clicking far below the floor does nothing", () => {
+  assert.equal(mesh.findPath({ x: 20, y: 20 }, { x: 300, y: 400 }), null);
+});
+
 test("isWalkable excludes obstacles and outside the floor", () => {
   assert.equal(mesh.isWalkable({ x: 200, y: 100 }), false);
   assert.equal(mesh.isWalkable({ x: -5, y: 100 }), false);

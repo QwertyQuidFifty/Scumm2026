@@ -355,6 +355,8 @@ export class Game {
     // Connect NPCManager with perspective scaler for automatic NPC scaling
     this.npcManager.setPerspectiveScaler(this.perspectiveScaler);
 
+    this.characterController.setPerspective(currentStage.perspectiveScale);
+
     // Set up Y-axis movement factor for current stage
     if (currentStage.perspectiveMovement) {
       this.characterController.setYMovementFactor(
@@ -1583,6 +1585,7 @@ export class Game {
     this.perspectiveScaler.setPerspectiveConfig(result.stage.perspectiveScale);
 
     // Update Y-axis movement factor for the new stage
+    this.characterController.setPerspective(result.stage.perspectiveScale);
     if (result.stage.perspectiveMovement) {
       this.characterController.setYMovementFactor(
         result.stage.perspectiveMovement.yMovementFactor,

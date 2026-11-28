@@ -53,12 +53,15 @@ export class StageManager {
       backgroundWidth: 1024,
       backgroundHeight: 768,
       walkableArea: [
-        { x: 0, y: 803 }, // 763 + 40
+        // The floor stops short of the bottom of the picture (the camera
+        // stands on the near cobbles), so it stays within the perspective
+        // range below: everywhere you can walk, distance changes size.
+        { x: 0, y: 740 },
         { x: 3, y: 692 }, // 652 + 40
         { x: 387, y: 610 }, // 570 + 40
         { x: 568, y: 610 }, // 570 + 40
         { x: 976, y: 707 }, // 667 + 40
-        { x: 1024, y: 803 }, // 763 + 40
+        { x: 1024, y: 740 },
       ],
       objects: [
         {
@@ -202,9 +205,11 @@ export class StageManager {
       ]),
       perspectiveScale: {
         minY: 600, // At bar door position (background)
-        maxY: 713, // At cryptic door position (foreground)
+        maxY: 740, // Front edge of the walkable floor
         minScale: 50 / 144, // Scale factor for 50px height at bar door (50 / sprite height 144)
-        maxScale: 200 / 144, // Scale factor for 200px height at cryptic door (200 / sprite height 144)
+        // Same growth as before (200px at the cryptic door, y=713),
+        // continued to the front of the floor: 236px at y=740.
+        maxScale: 236 / 144,
       },
       perspectiveMovement: {
         yMovementFactor: 0.2, // Reduce Y-axis movement by 50% for isometric feel

@@ -39,6 +39,9 @@ const DEFAULT_MARGIN = 8;
 // Geometry
 // ---------------------------------------------------------------------------
 
+/** How far below the floor a click still walks to the floor above it. */
+export const BELOW_FLOOR_REACH = 160;
+
 export function pointInPolygon(p: Point, polygon: Point[]): boolean {
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -161,6 +164,23 @@ export class NavMesh {
     return pointInPolygon(p, this.walkable);
   }
 
+  /**
+   * For a point below the floor (the near ground in front of it): the
+   * floor directly above, if it is within BELOW_FLOOR_REACH. Points beside
+   * or above the floor (walls, sky) have none.
+   */
+  floorAbove(p: Point): Point | null {
+    for (let up = 1; up <= BELOW_FLOOR_REACH; up++) {
+      const q = { x: p.x, y: p.y - up };
+      if (this.isOnFloor(q)) {
+        // Step a little further in so the point isn't on the very edge.
+        const inside = { x: p.x, y: q.y - 2 };
+        return this.isOnFloor(inside) ? inside : q;
+      }
+    }
+    return null;
+  }
+
   /** The obstacle footprints as used for blocking (for debug drawing). */
   getBlockers(): Point[][] {
     return this.blockers.map((b) => b.map((p) => ({ ...p })));
@@ -190,9 +210,11 @@ export class NavMesh {
    * Where to go when the clicked point is inside an obstacle: the nearest
    * point just outside its padded outline that is on the floor.
    */
-  nearestReachable(target: Point): Point | null {
+  nearestReachable(clicked: Point): Point | null {
+    if (this.isWalkable(clicked)) return clicked;
+    const target = this.isOnFloor(clicked) ? clicked : this.floorAbove(clicked);
+    if (!target) return null;
     if (this.isWalkable(target)) return target;
-    if (!this.isOnFloor(target)) return null;
 
     let best: Point | null = null;
     let bestDist = Infinity;
