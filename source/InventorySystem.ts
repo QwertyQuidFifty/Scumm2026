@@ -6,6 +6,8 @@ import {
   FederatedPointerEvent,
 } from "pixi.js";
 import { ActionType } from "./CommandPanel";
+import type { PixelArtImage } from "./overlays/openDoorway";
+import { drawPixelArt } from "./KeySprite";
 
 export interface InventoryItem {
   id: string;
@@ -13,6 +15,8 @@ export interface InventoryItem {
   description: string;
   color: number;
   icon: string;
+  /** Pixel-art picture shown in the slot instead of the text icon. */
+  iconArt?: PixelArtImage;
   defaultAction: ActionType; // Default action for right-click and highlighting
 }
 
@@ -20,6 +24,7 @@ interface InventorySlot {
   container: Container;
   background: Graphics;
   text: Text;
+  art: Graphics;
   item?: InventoryItem;
   isHovered: boolean;
   slotIndex: number;
@@ -91,8 +96,11 @@ export class InventorySystem {
     text.x = this.slotWidth / 2;
     text.y = this.slotHeight / 2;
 
+    const art = new Graphics();
+
     // Add components to container
     container.addChild(background);
+    container.addChild(art);
     container.addChild(text);
 
     // Enable interactive events
@@ -103,6 +111,7 @@ export class InventorySystem {
       container,
       background,
       text,
+      art,
       item: undefined,
       isHovered: false,
       slotIndex: index,
@@ -187,7 +196,23 @@ export class InventorySystem {
 
     bg.rect(0, 0, this.slotWidth, this.slotHeight).fill(backgroundColor);
 
-    if (slot.item) {
+    slot.art.clear();
+    slot.art.visible = false;
+    if (slot.item?.iconArt) {
+      // Show the item's picture, centred in the slot
+      const iconArt = slot.item.iconArt;
+      drawPixelArt(slot.art, iconArt);
+      slot.art.x = Math.round(
+        (this.slotWidth - iconArt.rows[0].length * iconArt.pixelSize) / 2,
+      );
+      slot.art.y = Math.round(
+        (this.slotHeight - iconArt.rows.length * iconArt.pixelSize) / 2,
+      );
+      slot.art.visible = true;
+      slot.art.alpha = this.isDisabled ? 0.4 : 1.0;
+      slot.text.text = "";
+      slot.text.visible = false;
+    } else if (slot.item) {
       // Show item icon on top of background
       slot.text.text = slot.item.icon;
       slot.text.visible = true;
